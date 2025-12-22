@@ -56,23 +56,50 @@ The GitLab Issues Analyzer is a lightweight, event-driven system that monitors G
 - Optional: File-based tracking for persistence across restarts
 
 #### 3.2.2 Analyzer Component
-**Responsibility**: Analyze issues using DeepSeek API
+**Responsibility**: Analyze issues using AI API (DeepSeek, ChatGPT, etc.)
 
 **Key Functions**:
 - `analyze_issue(issue_data)`: Main analysis function
-- `prepare_prompt(issue_data)`: Format issue data into DeepSeek prompt
-- `call_deepseek_api(prompt)`: Make API request to DeepSeek
+- `fetch_comprehensive_issue_data(issue_iid)`: Fetch all issue data (comments, related issues, attachments)
+- `prepare_prompt(issue_data)`: Format comprehensive issue data into AI prompt
+- `call_ai_api(prompt, provider, model)`: Make API request to selected AI provider
 - `parse_analysis(response)`: Extract structured analysis from API response
 - `format_wwwh_tr(analysis)`: Structure analysis into WWWH-TR format
+
+**Supported AI Providers**:
+- DeepSeek (deepseek-chat, deepseek-reasoner)
+- OpenAI ChatGPT (gpt-4, gpt-3.5-turbo)
+- Anthropic Claude (claude-3-opus, claude-3-sonnet)
+- Other OpenAI-compatible APIs
 
 **Prompt Template**:
 ```
 Analyze the following GitLab issue using the WWWH-TR framework:
 
+=== ISSUE INFORMATION ===
 Title: {title}
 Description: {description}
+State: {state}
+Priority: {priority}
 Labels: {labels}
 Assignee: {assignee}
+Author: {author}
+Created: {created_at}
+Updated: {updated_at}
+Milestone: {milestone}
+URL: {url}
+
+=== COMMENTS ===
+{comments}
+
+=== RELATED ISSUES ===
+{related_issues}
+
+=== ATTACHMENTS & IMAGES ===
+{attachments}
+
+=== ADDITIONAL CONTEXT ===
+{additional_context}
 
 Please provide analysis structured as:
 - W1 — Why: [root cause and ultimate goal]
@@ -81,6 +108,8 @@ Please provide analysis structured as:
 - H — How: [feasible solutions and trade-offs]
 - T — Test: [quick experiments and milestones]
 - R — Reflect: [best choice and next steps]
+
+Note: Consider all available information including comments, related issues, and attachments when analyzing.
 ```
 
 **Error Handling**:
@@ -115,11 +144,12 @@ Body:
 ```
 1. GitLab → Webhook Event → Monitor Component
 2. Monitor → Validate & Extract Issue Data
-3. Monitor → Analyzer Component (with issue data)
-4. Analyzer → DeepSeek API → Analysis Response
-5. Analyzer → Reporter Component (with issue data + analysis)
-6. Reporter → Generate Email → SMTP Server
-7. Reporter → Email Delivered
+3. Monitor → Fetch Comprehensive Issue Data (comments, related issues, attachments)
+4. Monitor → Analyzer Component (with comprehensive issue data)
+5. Analyzer → AI API (DeepSeek/ChatGPT/Claude) → Analysis Response
+6. Analyzer → Reporter Component (with issue data + analysis)
+7. Reporter → Generate Email → SMTP Server
+8. Reporter → Email Delivered
 ```
 
 ### 4.2 Polling Mode Flow
@@ -128,11 +158,12 @@ Body:
 1. Monitor → Poll GitLab API (every N minutes)
 2. GitLab API → List of Issues
 3. Monitor → Filter New Issues (compare with processed set)
-4. Monitor → Analyzer Component (for each new issue)
-5. Analyzer → DeepSeek API → Analysis Response
-6. Analyzer → Reporter Component (with issue data + analysis)
-7. Reporter → Generate Email → SMTP Server
-8. Reporter → Email Delivered
+4. Monitor → Fetch Comprehensive Issue Data (comments, related issues, attachments)
+5. Monitor → Analyzer Component (for each new issue with comprehensive data)
+6. Analyzer → AI API (DeepSeek/ChatGPT/Claude) → Analysis Response
+7. Analyzer → Reporter Component (with issue data + analysis)
+8. Reporter → Generate Email → SMTP Server
+9. Reporter → Email Delivered
 ```
 
 ## 5. Technology Stack

@@ -1,14 +1,15 @@
 # API Integration Guide
 
-This document details the integration with GitLab API and DeepSeek API.
+This document details the integration with GitLab API and AI APIs (DeepSeek, OpenAI ChatGPT, Anthropic Claude, etc.).
 
 ## Table of Contents
 
 1. [GitLab API Integration](#gitlab-api-integration)
-2. [DeepSeek API Integration](#deepseek-api-integration)
-3. [Error Handling](#error-handling)
-4. [Rate Limiting](#rate-limiting)
-5. [Testing](#testing)
+2. [AI API Integration](#ai-api-integration)
+3. [Comprehensive Issue Data Fetching](#comprehensive-issue-data-fetching)
+4. [Error Handling](#error-handling)
+5. [Rate Limiting](#rate-limiting)
+6. [Testing](#testing)
 
 ## GitLab API Integration
 
@@ -113,6 +114,78 @@ Headers:
 }
 ```
 
+#### 3. Get Issue Notes (Comments)
+
+**Endpoint**: `GET /api/v4/projects/{project_id}/issues/{issue_iid}/notes`
+
+**Purpose**: Fetch all comments/notes for an issue
+
+**Example Request**:
+```http
+GET /api/v4/projects/123456/issues/5/notes
+Headers:
+  PRIVATE-TOKEN: glpat-xxxxxxxxxxxx
+```
+
+**Example Response**:
+```json
+[
+  {
+    "id": 1,
+    "body": "I've reproduced this issue...",
+    "author": {
+      "id": 1,
+      "username": "developer",
+      "name": "Developer Name"
+    },
+    "created_at": "2024-01-15T11:00:00Z",
+    "updated_at": "2024-01-15T11:00:00Z",
+    "system": false,
+    "noteable_type": "Issue"
+  }
+]
+```
+
+#### 4. Get Issue Links (Related Issues)
+
+**Endpoint**: `GET /api/v4/projects/{project_id}/issues/{issue_iid}/links`
+
+**Purpose**: Fetch related/linked issues
+
+**Example Request**:
+```http
+GET /api/v4/projects/123456/issues/5/links
+Headers:
+  PRIVATE-TOKEN: glpat-xxxxxxxxxxxx
+```
+
+**Example Response**:
+```json
+[
+  {
+    "source_issue": {
+      "id": 123,
+      "iid": 5,
+      "title": "Fix login bug"
+    },
+    "target_issue": {
+      "id": 124,
+      "iid": 6,
+      "title": "Related authentication issue"
+    },
+    "link_type": "relates_to"
+  }
+]
+```
+
+#### 5. Get Issue Attachments
+
+**Endpoint**: Issue description and notes may contain attachment references
+
+**Purpose**: Extract attachment URLs from issue description and comments
+
+**Note**: GitLab stores attachments in the issue description/notes as markdown links. Extract these for analysis.
+
 #### 3. Webhook Events
 
 **Event Type**: `Issue Hook`
@@ -198,6 +271,67 @@ class GitLabClient:
         response.raise_for_status()
         return response.json()
     
+    def get_issue_notes(self, issue_iid: int) -> List[Dict]:
+        """Fetch all comments/notes for an issue"""
+        endpoint = f"{self.url}/api/v4/projects/{self.project_id}/issues/{issue_iid}/notes"
+        response = requests.get(endpoint, headers=self.headers)
+        response.raise_for_status()
+        return response.json()
+    
+    def get_issue_links(self, issue_iid: int) -> List[Dict]:
+        """Fetch related/linked issues"""
+        endpoint = f"{self.url}/api/v4/projects/{self.project_id}/issues/{issue_iid}/links"
+        try:
+            response = requests.get(endpoint, headers=self.headers)
+            response.raise_for_status()
+            return response.json()
+        except requests.HTTPError:
+            # Links API may not be available in all GitLab versions
+            return []
+    
+    def get_comprehensive_issue_data(self, issue_iid: int) -> Dict:
+        """Fetch all issue data including comments, links, and attachments"""
+        issue = self.get_issue(issue_iid)
+        notes = self.get_issue_notes(issue_iid)
+        links = self.get_issue_links(issue_iid)
+        
+        # Extract attachments from description and notes
+        attachments = self._extract_attachments(issue.get('description', ''), notes)
+        
+        return {
+            **issue,
+            'comments': notes,
+            'related_issues': links,
+            'attachments': attachments,
+            'comment_count': len(notes)
+        }
+    
+    def _extract_attachments(self, description: str, notes: List[Dict]) -> List[Dict]:
+        """Extract attachment URLs from description and notes"""
+        import re
+        attachments = []
+        
+        # Extract markdown image links and file links
+        pattern = r'!\[.*?\]\((.*?)\)|\[.*?\]\((.*?)\)'
+        
+        for match in re.finditer(pattern, description):
+            url = match.group(1) or match.group(2)
+            if url and ('uploads' in url or url.startswith('http')):
+                attachments.append({'url': url, 'source': 'description'})
+        
+        for note in notes:
+            body = note.get('body', '')
+            for match in re.finditer(pattern, body):
+                url = match.group(1) or match.group(2)
+                if url and ('uploads' in url or url.startswith('http')):
+                    attachments.append({
+                        'url': url,
+                        'source': 'comment',
+                        'comment_id': note.get('id')
+                    })
+        
+        return attachments
+    
     def parse_webhook(self, payload: Dict) -> Dict:
         """Parse webhook payload"""
         return {
@@ -222,25 +356,96 @@ class GitLabClient:
 - Cache responses when possible
 - Use webhooks instead of polling when available
 
-## DeepSeek API Integration
+## Comprehensive Issue Data Fetching
 
 ### Overview
 
-The application uses DeepSeek Chat API to analyze GitLab issues using the WWWH-TR framework.
+The system fetches comprehensive issue data including:
+- Basic issue information (title, description, labels, etc.)
+- **All comments and notes** (with author and timestamps)
+- **Related/linked issues** (blocking, blocked by, duplicates, relates to)
+- **Attachments and images** (extracted from description and comments)
+- **Issue relationships** (epics, parent/child issues)
 
-### Authentication
+### Data Collection Strategy
 
-**Method**: API Key
-
-**Headers**:
-```http
-Authorization: Bearer sk-xxxxxxxxxxxx
-Content-Type: application/json
+```python
+def get_comprehensive_issue_data(issue_iid: int) -> Dict:
+    """Fetch all relevant issue data"""
+    # 1. Get basic issue info
+    issue = gitlab_client.get_issue(issue_iid)
+    
+    # 2. Get all comments
+    comments = gitlab_client.get_issue_notes(issue_iid)
+    
+    # 3. Get related issues
+    related_issues = gitlab_client.get_issue_links(issue_iid)
+    
+    # 4. Extract attachments from description and comments
+    attachments = extract_attachments(issue['description'], comments)
+    
+    # 5. Combine all data
+    return {
+        **issue,
+        'comments': comments,
+        'related_issues': related_issues,
+        'attachments': attachments,
+        'comment_count': len(comments)
+    }
 ```
 
-### API Endpoint
+### Comment Analysis
 
-**Endpoint**: `POST https://api.deepseek.com/v1/chat/completions`
+- **Include**: All user comments (exclude system notes)
+- **Format**: Author, timestamp, and content
+- **Purpose**: Understand discussion context, solutions proposed, status updates
+
+### Related Issues Analysis
+
+- **Types**: Blocking, blocked by, duplicates, relates to, closes
+- **Purpose**: Understand issue dependencies and relationships
+- **Usage**: Reference related issues in analysis for context
+
+### Attachment Handling
+
+- **Extraction**: Parse markdown links from description and comments
+- **Types**: Images, files, screenshots
+- **Purpose**: Reference visual information in analysis
+- **Note**: URLs are included in prompt; actual file content not downloaded (to save tokens)
+
+## AI API Integration
+
+### Overview
+
+The application supports multiple AI providers to analyze GitLab issues using the WWWH-TR framework. Supported providers include:
+- **DeepSeek** (deepseek-chat, deepseek-reasoner)
+- **OpenAI ChatGPT** (gpt-4, gpt-3.5-turbo, gpt-4-turbo)
+- **Anthropic Claude** (claude-3-opus, claude-3-sonnet, claude-3-haiku)
+- **Other OpenAI-compatible APIs** (Ollama, LocalAI, etc.)
+
+The system uses an OpenAI-compatible API interface for maximum flexibility.
+
+### Provider-Specific Configuration
+
+#### DeepSeek
+- **Base URL**: `https://api.deepseek.com/v1`
+- **Authentication**: API Key in `Authorization: Bearer` header
+- **Models**: `deepseek-chat`, `deepseek-reasoner`
+
+#### OpenAI ChatGPT
+- **Base URL**: `https://api.openai.com/v1`
+- **Authentication**: API Key in `Authorization: Bearer` header
+- **Models**: `gpt-4`, `gpt-4-turbo`, `gpt-3.5-turbo`
+
+#### Anthropic Claude
+- **Base URL**: `https://api.anthropic.com/v1`
+- **Authentication**: API Key in `x-api-key` header
+- **Models**: `claude-3-opus-20240229`, `claude-3-sonnet-20240229`, `claude-3-haiku-20240307`
+- **Note**: Requires adapter for OpenAI-compatible interface
+
+### Common API Endpoint
+
+**Endpoint**: `POST {base_url}/chat/completions` (OpenAI-compatible)
 
 ### Request Format
 
@@ -266,31 +471,47 @@ Content-Type: application/json
 ### Prompt Template
 
 ```python
-SYSTEM_PROMPT = """You are an expert software development analyst. Analyze GitLab issues using the WWWH-TR thinking framework and provide structured, actionable insights."""
+SYSTEM_PROMPT = """You are an expert software development analyst. Analyze GitLab issues using the WWWH-TR thinking framework and provide structured, actionable insights. Consider all available information including comments, related issues, and attachments."""
 
 USER_PROMPT_TEMPLATE = """Analyze the following GitLab issue using the WWWH-TR framework:
 
+=== ISSUE INFORMATION ===
 Title: {title}
 Description: {description}
+State: {state}
+Priority: {priority}
 Labels: {labels}
 Assignee: {assignee}
+Author: {author}
+Created: {created_at}
+Updated: {updated_at}
+Milestone: {milestone}
 URL: {url}
+
+=== COMMENTS ({comment_count} total) ===
+{comments}
+
+=== RELATED ISSUES ===
+{related_issues}
+
+=== ATTACHMENTS & IMAGES ===
+{attachments}
 
 Please provide a comprehensive analysis structured as follows:
 
-**W1 — Why**: Why is this needed? Understand the root cause and identify the ultimate goal.
+**W1 — Why**: Why is this needed? Understand the root cause and identify the ultimate goal. Consider context from comments and related issues.
 
-**W2 — What**: What specifically? Identify the problem and gather relevant information.
+**W2 — What**: What specifically? Identify the problem and gather relevant information. Reference any attachments or images if relevant.
 
-**W3 — Who**: Who is involved or affected? Identify stakeholders and people who can help.
+**W3 — Who**: Who is involved or affected? Identify stakeholders and people who can help. Consider comment authors and assignees.
 
-**H — How**: What are the possible approaches? Identify feasible solutions, compare them, and discuss trade-offs.
+**H — How**: What are the possible approaches? Identify feasible solutions, compare them, and discuss trade-offs. Consider solutions mentioned in comments.
 
 **T — Test**: How to test small? Suggest quick experiments and measurement milestones (feasibility, time, cost, etc.).
 
-**R — Reflect**: What is the best choice? Provide evaluation, conclusion, next steps, and potential adjustments.
+**R — Reflect**: What is the best choice? Provide evaluation, conclusion, next steps, and potential adjustments. Synthesize insights from all available information.
 
-Be concise but thorough. Focus on actionable insights."""
+Be concise but thorough. Focus on actionable insights. If comments or related issues provide important context, reference them in your analysis."""
 ```
 
 ### Response Format
@@ -323,20 +544,56 @@ Be concise but thorough. Focus on actionable insights."""
 
 ```python
 import requests
-from typing import Dict
+from typing import Dict, List, Optional
 
-class DeepSeekAnalyzer:
-    def __init__(self, api_key: str, model: str = "deepseek-chat"):
+class AIAnalyzer:
+    """Universal AI analyzer supporting multiple providers"""
+    
+    PROVIDERS = {
+        'deepseek': {
+            'base_url': 'https://api.deepseek.com/v1',
+            'auth_header': 'Authorization',
+            'auth_prefix': 'Bearer'
+        },
+        'openai': {
+            'base_url': 'https://api.openai.com/v1',
+            'auth_header': 'Authorization',
+            'auth_prefix': 'Bearer'
+        },
+        'anthropic': {
+            'base_url': 'https://api.anthropic.com/v1',
+            'auth_header': 'x-api-key',
+            'auth_prefix': ''
+        }
+    }
+    
+    def __init__(self, provider: str, api_key: str, model: str):
+        if provider not in self.PROVIDERS:
+            raise ValueError(f"Unsupported provider: {provider}")
+        
+        self.provider = provider
         self.api_key = api_key
         self.model = model
-        self.base_url = "https://api.deepseek.com/v1"
+        self.config = self.PROVIDERS[provider]
+        self.base_url = self.config['base_url']
+        
+        # Build headers based on provider
+        if self.config['auth_prefix']:
+            auth_value = f"{self.config['auth_prefix']} {api_key}"
+        else:
+            auth_value = api_key
+        
         self.headers = {
-            'Authorization': f'Bearer {api_key}',
+            self.config['auth_header']: auth_value,
             'Content-Type': 'application/json'
         }
+        
+        # Anthropic requires additional headers
+        if provider == 'anthropic':
+            self.headers['anthropic-version'] = '2023-06-01'
     
     def analyze_issue(self, issue_data: Dict) -> str:
-        """Analyze issue using DeepSeek API"""
+        """Analyze issue using configured AI provider"""
         prompt = self._build_prompt(issue_data)
         
         payload = {
@@ -368,31 +625,80 @@ class DeepSeekAnalyzer:
         return result['choices'][0]['message']['content']
     
     def _build_prompt(self, issue_data: Dict) -> str:
-        """Build analysis prompt from issue data"""
+        """Build comprehensive analysis prompt from issue data"""
+        # Format comments
+        comments_text = "No comments"
+        if issue_data.get('comments'):
+            comments_list = []
+            for comment in issue_data['comments']:
+                if not comment.get('system', False):  # Skip system notes
+                    author = comment.get('author', {}).get('username', 'Unknown')
+                    body = comment.get('body', '')
+                    created = comment.get('created_at', '')
+                    comments_list.append(f"[{author} @ {created}]: {body}")
+            comments_text = "\n".join(comments_list) if comments_list else "No comments"
+        
+        # Format related issues
+        related_text = "No related issues"
+        if issue_data.get('related_issues'):
+            related_list = []
+            for link in issue_data['related_issues']:
+                target = link.get('target_issue', {})
+                related_list.append(f"- #{target.get('iid')}: {target.get('title')} ({link.get('link_type', 'related')})")
+            related_text = "\n".join(related_list) if related_list else "No related issues"
+        
+        # Format attachments
+        attachments_text = "No attachments"
+        if issue_data.get('attachments'):
+            attachments_list = []
+            for att in issue_data['attachments']:
+                attachments_list.append(f"- {att.get('url')} (from {att.get('source', 'unknown')})")
+            attachments_text = "\n".join(attachments_list) if attachments_list else "No attachments"
+        
         return USER_PROMPT_TEMPLATE.format(
             title=issue_data.get('title', ''),
             description=issue_data.get('description', ''),
-            labels=', '.join(issue_data.get('labels', [])),
-            assignee=issue_data.get('assignee', {}).get('username', 'Unassigned'),
-            url=issue_data.get('web_url', '')
+            state=issue_data.get('state', 'unknown'),
+            priority=issue_data.get('priority', 'not set'),
+            labels=', '.join([l.get('name', l) if isinstance(l, dict) else l for l in issue_data.get('labels', [])]),
+            assignee=issue_data.get('assignee', {}).get('username', 'Unassigned') if isinstance(issue_data.get('assignee'), dict) else 'Unassigned',
+            author=issue_data.get('author', {}).get('username', 'Unknown') if isinstance(issue_data.get('author'), dict) else 'Unknown',
+            created_at=issue_data.get('created_at', ''),
+            updated_at=issue_data.get('updated_at', ''),
+            milestone=issue_data.get('milestone', {}).get('title', 'None') if isinstance(issue_data.get('milestone'), dict) else 'None',
+            url=issue_data.get('web_url', ''),
+            comment_count=issue_data.get('comment_count', len(issue_data.get('comments', []))),
+            comments=comments_text,
+            related_issues=related_text,
+            attachments=attachments_text
         )
 ```
 
 ### Rate Limits
 
-- **Free Tier**: Check DeepSeek documentation for current limits
-- **Paid Tier**: Higher limits available
+**Provider-Specific Limits**:
+- **DeepSeek**: Check DeepSeek documentation for current limits
+- **OpenAI**: Varies by tier (free tier: 3 requests/minute, paid: higher)
+- **Anthropic**: Varies by tier (check current limits)
 
 **Handling**:
 - Implement exponential backoff
 - Queue requests if needed
-- Monitor usage
+- Monitor usage per provider
+- Provider-specific rate limit handling
 
 ### Cost Considerations
 
-- **Pricing**: Check DeepSeek pricing page
-- **Token Usage**: Monitor `usage.total_tokens` in responses
-- **Optimization**: Adjust `max_tokens` based on needs
+**Provider Pricing** (check current pricing):
+- **DeepSeek**: Generally lower cost, good for high volume
+- **OpenAI**: Higher cost, excellent quality
+- **Anthropic**: Competitive pricing, strong reasoning
+
+**Optimization**:
+- Monitor `usage.total_tokens` in responses
+- Adjust `max_tokens` based on needs
+- Choose provider based on cost/quality trade-off
+- Use cheaper models for simple issues, premium for complex ones
 
 ## Error Handling
 
@@ -416,23 +722,28 @@ class DeepSeekAnalyzer:
 - GitLab server issue
 - Solution: Retry with exponential backoff
 
-#### DeepSeek API Errors
+#### AI API Errors
 
 **401 Unauthorized**:
 - Invalid API key
-- Solution: Verify API key
+- Solution: Verify API key for selected provider
 
 **429 Too Many Requests**:
 - Rate limit exceeded
-- Solution: Implement backoff, reduce request frequency
+- Solution: Implement backoff, reduce request frequency, consider switching providers
 
 **500 Internal Server Error**:
-- DeepSeek server issue
-- Solution: Retry with exponential backoff
+- AI provider server issue
+- Solution: Retry with exponential backoff, consider fallback provider
 
 **503 Service Unavailable**:
 - Service temporarily unavailable
-- Solution: Retry with exponential backoff
+- Solution: Retry with exponential backoff, consider fallback provider
+
+**Provider-Specific Errors**:
+- **Anthropic**: May require different error handling
+- **OpenAI**: Check for model availability errors
+- **DeepSeek**: Check for regional restrictions
 
 ### Retry Strategy
 

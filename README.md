@@ -6,8 +6,8 @@ A lightweight, automated tool that analyzes new GitLab issues using AI and sends
 
 This project automates the analysis of GitLab issues to save time on manual ticket review. When a new issue is created, the system:
 
-1. Fetches the issue details from GitLab
-2. Analyzes the issue using DeepSeek AI (thinking mode)
+1. Fetches comprehensive issue data from GitLab (including comments, related issues, attachments)
+2. Analyzes the issue using AI (DeepSeek, ChatGPT, Claude, or other providers)
 3. Structures the analysis using the WWWH-TR framework
 4. Sends an email notification with the analysis report
 
@@ -25,7 +25,9 @@ The analysis follows this structured thinking approach:
 ## ✨ Features
 
 - **Automated Issue Detection**: Monitors GitLab for new issues via webhooks or polling
-- **AI-Powered Analysis**: Uses DeepSeek thinking mode for deep issue analysis
+- **Comprehensive Data Collection**: Analyzes all issue information including comments, related issues, attachments, and images
+- **Multi-Provider AI Support**: Supports DeepSeek, OpenAI ChatGPT, Anthropic Claude, and other OpenAI-compatible APIs
+- **Dynamic Model Selection**: Easily switch between AI providers and models via configuration
 - **Structured Reports**: Formats analysis using WWWH-TR framework
 - **Email Notifications**: Sends formatted reports via SMTP
 - **Lightweight**: No database, minimal dependencies
@@ -52,7 +54,8 @@ The analysis follows this structured thinking approach:
        ▼
 ┌─────────────────────┐
 │  Issue Analyzer     │
-│  (DeepSeek API)     │
+│  (AI API: DeepSeek/ │
+│   ChatGPT/Claude)   │
 └──────┬──────────────┘
        │
        │ (WWWH-TR Analysis)
@@ -74,7 +77,7 @@ The analysis follows this structured thinking approach:
 
 - Python 3.9+
 - GitLab API access (Personal Access Token)
-- DeepSeek API key
+- AI Provider API key (DeepSeek, OpenAI, Anthropic, or compatible)
 - SMTP server credentials
 - Internet connection
 
@@ -101,8 +104,9 @@ Copy `config.example.json` to `config.json` and fill in your credentials:
     "token": "your-gitlab-token",
     "project_id": "your-project-id"
   },
-  "deepseek": {
-    "api_key": "your-deepseek-api-key",
+  "ai": {
+    "provider": "deepseek",
+    "api_key": "your-ai-api-key",
     "model": "deepseek-chat",
     "temperature": 0.7
   },

@@ -34,16 +34,22 @@ Automate the analysis of GitLab issues to reduce manual review time. The system 
 ### 2.2 Issue Analysis (FR2)
 **Priority: High**
 
-- **FR2.1**: System must fetch complete issue data from GitLab API
-  - Issue title
-  - Issue description
-  - Labels
-  - Assignee
-  - Comments (optional)
-  - Milestone (optional)
-  - Priority (optional)
+- **FR2.1**: System must fetch comprehensive issue data from GitLab API
+  - Issue title and description
+  - Labels, assignee, author
+  - State, priority, milestone
+  - **All comments and notes** (with author and timestamps)
+  - **Related issues** (linked issues, blocking/blocked by, duplicates)
+  - **Attachments and images** (file names, URLs, descriptions)
+  - **Issue relationships** (epics, parent/child issues)
+  - **Timeline information** (created, updated, closed dates)
+  - **Additional metadata** (weight, time tracking, etc.)
 
-- **FR2.2**: System must send issue data to DeepSeek API for analysis
+- **FR2.2**: System must send comprehensive issue data to AI API for analysis
+- **FR2.2.1**: System must support multiple AI providers (DeepSeek, OpenAI ChatGPT, Anthropic Claude, etc.)
+- **FR2.2.2**: System must allow dynamic model selection via configuration
+- **FR2.2.3**: System must use OpenAI-compatible API interface for flexibility
+
 - **FR2.3**: System must structure analysis using WWWH-TR framework:
   - **W1 — Why**: Root cause and ultimate goal
   - **W2 — What**: Problem identification and information gathering
@@ -136,10 +142,12 @@ Automate the analysis of GitLab issues to reduce manual review time. The system 
 - **IR3**: Support for gitlab.com and self-hosted instances
 - **IR4**: Webhook support (if available)
 
-### 5.2 DeepSeek API Integration
-- **IR5**: DeepSeek Chat API compatibility
-- **IR6**: Support for thinking mode
-- **IR7**: Proper error handling and retries
+### 5.2 AI API Integration
+- **IR5**: Support for multiple AI providers (DeepSeek, OpenAI, Anthropic, etc.)
+- **IR6**: OpenAI-compatible API interface
+- **IR7**: Dynamic model selection
+- **IR8**: Support for thinking/reasoning modes when available
+- **IR9**: Proper error handling and retries
 
 ### 5.3 SMTP Integration
 - **IR8**: Standard SMTP protocol support
@@ -198,7 +206,7 @@ Automate the analysis of GitLab issues to reduce manual review time. The system 
 | API rate limits | High | Medium | Implement rate limiting and retry logic |
 | API downtime | High | Low | Implement retry with exponential backoff |
 | Email delivery failure | Medium | Low | Implement retry logic, log failures |
-| DeepSeek API costs | High | Low | Use free tier, monitor usage |
+| AI API costs | High | Low | Use free tier, monitor usage, support multiple providers |
 | Webhook security | Medium | Medium | Validate webhook secret tokens |
 | Deployment platform limits | Medium | Medium | Support multiple deployment options |
 

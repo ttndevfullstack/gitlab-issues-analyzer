@@ -83,49 +83,75 @@ The application supports three configuration methods (in priority order):
   ```
 - **Default**: Process all new issues
 
-## DeepSeek Configuration
+## AI Provider Configuration
 
 ### Required Settings
 
-#### `DEEPSEEK_API_KEY` / `deepseek.api_key`
+#### `AI_PROVIDER` / `ai.provider`
 - **Type**: String
-- **Description**: DeepSeek API key
+- **Description**: AI provider to use for analysis
+- **Options**:
+  - `deepseek` (Default, cost-effective)
+  - `openai` (OpenAI ChatGPT)
+  - `anthropic` (Anthropic Claude)
+  - `custom` (Custom OpenAI-compatible API)
+- **Default**: `deepseek`
+
+#### `AI_API_KEY` / `ai.api_key`
+- **Type**: String
+- **Description**: API key for selected AI provider
 - **How to Get**:
-  1. Sign up at [DeepSeek Platform](https://platform.deepseek.com/)
-  2. Go to API Keys section
-  3. Create new API key
-  4. Copy key (starts with `sk-`)
+  - **DeepSeek**: Sign up at [DeepSeek Platform](https://platform.deepseek.com/)
+  - **OpenAI**: Sign up at [OpenAI Platform](https://platform.openai.com/)
+  - **Anthropic**: Sign up at [Anthropic Console](https://console.anthropic.com/)
 - **Security**: Never commit to version control
 - **Default**: None (required)
 
 ### Optional Settings
 
-#### `DEEPSEEK_MODEL` / `deepseek.model`
+#### `AI_MODEL` / `ai.model`
 - **Type**: String
-- **Description**: DeepSeek model to use
-- **Options**:
-  - `deepseek-chat` (Default, recommended)
-  - `deepseek-reasoner` (If available)
-- **Default**: `deepseek-chat`
+- **Description**: AI model to use (provider-specific)
+- **Options by Provider**:
+  - **DeepSeek**: `deepseek-chat` (default), `deepseek-reasoner`
+  - **OpenAI**: `gpt-4`, `gpt-4-turbo`, `gpt-3.5-turbo` (default)
+  - **Anthropic**: `claude-3-opus-20240229`, `claude-3-sonnet-20240229` (default), `claude-3-haiku-20240307`
+- **Default**: Provider-specific (see above)
 
-#### `DEEPSEEK_TEMPERATURE` / `deepseek.temperature`
+#### `AI_BASE_URL` / `ai.base_url`
+- **Type**: String
+- **Description**: Custom API base URL (for custom providers or self-hosted)
+- **Defaults by Provider**:
+  - DeepSeek: `https://api.deepseek.com/v1`
+  - OpenAI: `https://api.openai.com/v1`
+  - Anthropic: `https://api.anthropic.com/v1`
+- **Use Case**: Custom providers, local AI servers (Ollama, LocalAI)
+- **Default**: Provider-specific (see above)
+
+#### `AI_TEMPERATURE` / `ai.temperature`
 - **Type**: Float
 - **Description**: Sampling temperature (0.0 to 2.0)
 - **Range**: 0.0 (deterministic) to 2.0 (creative)
 - **Recommended**: 0.7 (balanced)
 - **Default**: `0.7`
 
-#### `DEEPSEEK_MAX_TOKENS` / `deepseek.max_tokens`
+#### `AI_MAX_TOKENS` / `ai.max_tokens`
 - **Type**: Integer
 - **Description**: Maximum tokens in response
-- **Range**: 1 to 4096
+- **Range**: 1 to 4096 (varies by provider)
 - **Recommended**: 2000 (for detailed analysis)
 - **Default**: `2000`
 
-#### `DEEPSEEK_BASE_URL` / `deepseek.base_url`
+#### `AI_FALLBACK_PROVIDER` / `ai.fallback_provider`
 - **Type**: String
-- **Description**: DeepSeek API base URL
-- **Default**: `https://api.deepseek.com`
+- **Description**: Fallback provider if primary provider fails
+- **Options**: Same as `AI_PROVIDER`
+- **Default**: None (no fallback)
+
+#### `AI_FALLBACK_API_KEY` / `ai.fallback_api_key`
+- **Type**: String
+- **Description**: API key for fallback provider
+- **Default**: None
 
 ## SMTP Configuration
 
@@ -269,10 +295,11 @@ export GITLAB_TOKEN="glpat-xxxxxxxxxxxx"
 export GITLAB_PROJECT_ID="123456"
 export GITLAB_WEBHOOK_SECRET="my-secret-token"
 
-# DeepSeek
-export DEEPSEEK_API_KEY="sk-xxxxxxxxxxxx"
-export DEEPSEEK_MODEL="deepseek-chat"
-export DEEPSEEK_TEMPERATURE="0.7"
+# AI Provider
+export AI_PROVIDER="deepseek"
+export AI_API_KEY="sk-xxxxxxxxxxxx"
+export AI_MODEL="deepseek-chat"
+export AI_TEMPERATURE="0.7"
 
 # SMTP
 export SMTP_HOST="smtp.gmail.com"
@@ -298,7 +325,8 @@ export LOG_LEVEL="INFO"
     "project_id": "123456",
     "webhook_secret": "my-secret-token"
   },
-  "deepseek": {
+  "ai": {
+    "provider": "deepseek",
     "api_key": "sk-xxxxxxxxxxxx",
     "model": "deepseek-chat",
     "temperature": 0.7,
@@ -358,7 +386,49 @@ export LOG_LEVEL="INFO"
 }
 ```
 
-### Example 5: Self-Hosted GitLab
+### Example 5: Using OpenAI ChatGPT
+
+```json
+{
+  "ai": {
+    "provider": "openai",
+    "api_key": "sk-xxxxxxxxxxxx",
+    "model": "gpt-4",
+    "temperature": 0.7,
+    "max_tokens": 2000
+  }
+}
+```
+
+### Example 6: Using Anthropic Claude
+
+```json
+{
+  "ai": {
+    "provider": "anthropic",
+    "api_key": "sk-ant-xxxxxxxxxxxx",
+    "model": "claude-3-sonnet-20240229",
+    "temperature": 0.7,
+    "max_tokens": 2000
+  }
+}
+```
+
+### Example 7: Using Custom/OpenAI-Compatible API (e.g., Ollama)
+
+```json
+{
+  "ai": {
+    "provider": "custom",
+    "api_key": "not-required",
+    "model": "llama2",
+    "base_url": "http://localhost:11434/v1",
+    "temperature": 0.7
+  }
+}
+```
+
+### Example 8: Self-Hosted GitLab
 
 ```json
 {
@@ -449,12 +519,13 @@ The application validates configuration on startup:
 - Check token has `api` scope
 - Verify GitLab URL is correct
 
-### Issue: "DeepSeek API error"
+### Issue: "AI API error"
 
 **Solution**:
-- Verify API key is valid
-- Check API key has sufficient credits
-- Verify model name is correct
+- Verify API key is valid for selected provider
+- Check API key has credits/balance
+- Verify model name is correct for provider
+- Check provider-specific requirements (e.g., Anthropic requires version header)
 
 ## Next Steps
 
