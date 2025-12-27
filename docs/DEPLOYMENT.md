@@ -1,451 +1,211 @@
 # Deployment Guide
 
-This guide covers deployment options for the GitLab Issues Analyzer on various free platforms.
+This guide covers deployment options for GitLab Issues Analyzer.
 
 ## Table of Contents
 
-1. [Prerequisites](#prerequisites)
-2. [Deployment Options](#deployment-options)
-3. [GitHub Actions Deployment](#github-actions-deployment)
-4. [Railway Deployment](#railway-deployment)
-5. [Render Deployment](#render-deployment)
-6. [Fly.io Deployment](#flyio-deployment)
-7. [Local Deployment](#local-deployment)
-8. [Configuration for Deployment](#configuration-for-deployment)
-9. [Troubleshooting](#troubleshooting)
+- [Docker Deployment](#docker-deployment)
+- [Docker Compose Deployment](#docker-compose-deployment)
+- [Health Checks](#health-checks)
+- [Troubleshooting](#troubleshooting)
+- [Best Practices](#best-practices)
 
-## Prerequisites
+## Docker Deployment
 
-Before deploying, ensure you have:
+### Prerequisites
 
-1. **GitLab Access**
-   - Personal Access Token with `api` scope
-   - Project ID or project path
-   - Webhook secret (if using webhook mode)
+- Docker installed
+- Docker Compose
 
-2. **DeepSeek API Key**
-   - Sign up at [DeepSeek](https://platform.deepseek.com/)
-   - Generate API key
-   - Note your API key
+### Production Docker Deployment
 
-3. **SMTP Credentials**
-   - Email account with SMTP access
-   - App password (for Gmail/Outlook)
-   - SMTP server details
+For production, use Docker Compose (recommended) or direct Docker commands:
 
-4. **Git Repository**
-   - Code pushed to GitHub/GitLab
-   - Repository access for deployment platform
-
-## Deployment Options
-
-### Comparison Table
-
-| Platform | Mode | Cost | Setup Complexity | Best For |
-|----------|------|------|------------------|----------|
-| GitHub Actions | Polling | Free | Easy | Automated scheduling |
-| Railway | Webhook/Polling | Free tier | Medium | Real-time webhooks |
-| Render | Webhook/Polling | Free tier | Medium | Simple web services |
-| Fly.io | Webhook/Polling | Free tier | Medium | Global distribution |
-| Local Cron | Polling | Free | Easy | Personal use |
-
-## GitHub Actions Deployment
-
-### Overview
-GitHub Actions runs on a schedule (polling mode). Webhook mode is not supported as GitLab webhooks cannot reach GitHub Actions.
-
-### Steps
-
-1. **Create GitHub Repository**
-   ```bash
-   git init
-   git add .
-   git commit -m "Initial commit"
-   git remote add origin https://github.com/yourusername/gitlab-issues-analyzer.git
-   git push -u origin main
-   ```
-
-2. **Set Up Secrets**
-   - Go to repository → Settings → Secrets and variables → Actions
-   - Add the following secrets:
-     - `GITLAB_URL`: Your GitLab instance URL
-     - `GITLAB_TOKEN`: Your GitLab Personal Access Token
-     - `GITLAB_PROJECT_ID`: Your project ID
-     - `DEEPSEEK_API_KEY`: Your DeepSeek API key
-     - `SMTP_HOST`: SMTP server host
-     - `SMTP_PORT`: SMTP port (usually 587)
-     - `SMTP_USERNAME`: SMTP username
-     - `SMTP_PASSWORD`: SMTP password/app password
-     - `SMTP_FROM_EMAIL`: Sender email
-     - `SMTP_TO_EMAIL`: Recipient email
-
-3. **Create Workflow File**
-   Create `.github/workflows/analyze-issues.yml`:
-   ```yaml
-   name: Analyze GitLab Issues
-   
-   on:
-     schedule:
-       - cron: '*/15 * * * *'  # Every 15 minutes
-     workflow_dispatch:  # Manual trigger
-   
-   jobs:
-     analyze:
-       runs-on: ubuntu-latest
-       steps:
-         - uses: actions/checkout@v3
-         
-         - name: Set up Python
-           uses: actions/setup-python@v4
-           with:
-             python-version: '3.11'
-         
-         - name: Install dependencies
-           run: |
-             pip install -r requirements.txt
-         
-         - name: Run analyzer
-           env:
-             GITLAB_URL: ${{ secrets.GITLAB_URL }}
-             GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
-             GITLAB_PROJECT_ID: ${{ secrets.GITLAB_PROJECT_ID }}
-             DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
-             SMTP_HOST: ${{ secrets.SMTP_HOST }}
-             SMTP_PORT: ${{ secrets.SMTP_PORT }}
-             SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
-             SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
-             SMTP_FROM_EMAIL: ${{ secrets.SMTP_FROM_EMAIL }}
-             SMTP_TO_EMAIL: ${{ secrets.SMTP_TO_EMAIL }}
-             APP_MODE: poll
-             POLL_INTERVAL: 900
-           run: |
-             python main.py
-   ```
-
-4. **Verify Deployment**
-   - Go to Actions tab in GitHub
-   - Check workflow runs
-   - Review logs for errors
-
-### Pros
-- ✅ Free tier: 2000 minutes/month
-- ✅ Easy setup
-- ✅ Integrated with GitHub
-- ✅ Scheduled execution
-
-### Cons
-- ❌ No webhook support
-- ❌ Limited to polling mode
-- ❌ May hit rate limits with frequent polling
-
-## Railway Deployment
-
-### Overview
-Railway supports both webhook and polling modes. Free tier includes 500 hours/month.
-
-### Steps
-
-1. **Create Railway Account**
-   - Sign up at [Railway](https://railway.app/)
-   - Connect GitHub account
-
-2. **Create New Project**
-   - Click "New Project"
-   - Select "Deploy from GitHub repo"
-   - Choose your repository
-
-3. **Configure Environment Variables**
-   - Go to project → Variables
-   - Add all required environment variables (same as GitHub Actions secrets)
-
-4. **Configure Service**
-   - Set start command: `python main.py --mode webhook`
-   - Railway will auto-detect Python and install dependencies
-
-5. **Set Up GitLab Webhook** (if using webhook mode)
-   - Get Railway public URL from project settings
-   - In GitLab: Project → Settings → Webhooks
-   - URL: `https://your-app.railway.app/webhook`
-   - Secret token: Your webhook secret
-   - Trigger: "Issue events"
-
-6. **Deploy**
-   - Railway auto-deploys on git push
-   - Check logs for deployment status
-
-### Pros
-- ✅ Free tier available
-- ✅ Webhook support
-- ✅ Auto-deployment
-- ✅ Easy configuration
-
-### Cons
-- ❌ Free tier limited hours
-- ❌ May sleep after inactivity
-
-## Render Deployment
-
-### Overview
-Similar to Railway, supports webhook and polling modes. Free tier available.
-
-### Steps
-
-1. **Create Render Account**
-   - Sign up at [Render](https://render.com/)
-   - Connect GitHub account
-
-2. **Create Web Service**
-   - Click "New" → "Web Service"
-   - Connect your repository
-   - Settings:
-     - **Name**: gitlab-issues-analyzer
-     - **Environment**: Python 3
-     - **Build Command**: `pip install -r requirements.txt`
-     - **Start Command**: `python main.py --mode webhook`
-     - **Plan**: Free
-
-3. **Add Environment Variables**
-   - Go to Environment section
-   - Add all required variables
-
-4. **Deploy**
-   - Click "Create Web Service"
-   - Render will build and deploy
-   - Get public URL from dashboard
-
-5. **Set Up GitLab Webhook** (if using webhook mode)
-   - Use Render public URL
-   - Configure in GitLab (same as Railway)
-
-### Pros
-- ✅ Free tier available
-- ✅ Webhook support
-- ✅ Auto-deployment
-- ✅ Simple interface
-
-### Cons
-- ❌ Free tier may sleep after inactivity
-- ❌ Slower cold starts
-
-## Fly.io Deployment
-
-### Overview
-Fly.io offers global distribution. Free tier includes 3 shared VMs.
-
-### Steps
-
-1. **Install Fly CLI**
-   ```bash
-   curl -L https://fly.io/install.sh | sh
-   ```
-
-2. **Login to Fly.io**
-   ```bash
-   fly auth login
-   ```
-
-3. **Create Fly App**
-   ```bash
-   fly launch
-   ```
-   - Follow prompts
-   - Select region
-   - Don't deploy yet
-
-4. **Configure Secrets**
-   ```bash
-   fly secrets set GITLAB_URL=your-url
-   fly secrets set GITLAB_TOKEN=your-token
-   # ... set all other secrets
-   ```
-
-5. **Create `fly.toml`**
-   ```toml
-   app = "gitlab-issues-analyzer"
-   primary_region = "iad"
-   
-   [build]
-   
-   [http_service]
-     internal_port = 8000
-     force_https = true
-     auto_stop_machines = true
-     auto_start_machines = true
-     min_machines_running = 0
-   
-   [[services]]
-     protocol = "tcp"
-     internal_port = 8000
-   ```
-
-6. **Deploy**
-   ```bash
-   fly deploy
-   ```
-
-7. **Set Up GitLab Webhook**
-   - Get app URL: `https://gitlab-issues-analyzer.fly.dev`
-   - Configure in GitLab
-
-### Pros
-- ✅ Free tier available
-- ✅ Global distribution
-- ✅ Webhook support
-- ✅ Fast deployment
-
-### Cons
-- ❌ CLI required
-- ❌ More complex setup
-
-## Local Deployment
-
-### Overview
-Run on your local machine using cron (Linux/Mac) or Task Scheduler (Windows).
-
-### Steps
-
-1. **Install Dependencies**
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # Windows: venv\Scripts\activate
-   pip install -r requirements.txt
-   ```
-
-2. **Create Config File**
-   - Copy `config.example.json` to `config.json`
-   - Fill in all credentials
-
-3. **Test Run**
-   ```bash
-   python main.py --mode poll
-   ```
-
-4. **Set Up Cron Job** (Linux/Mac)
-   ```bash
-   crontab -e
-   ```
-   Add:
-   ```cron
-   */15 * * * * cd /path/to/gitlab-issues-analyzer && /path/to/venv/bin/python main.py --mode poll >> /tmp/gitlab-analyzer.log 2>&1
-   ```
-
-5. **Set Up Task Scheduler** (Windows)
-   - Open Task Scheduler
-   - Create Basic Task
-   - Trigger: Daily/On a schedule
-   - Action: Start a program
-   - Program: `C:\path\to\venv\Scripts\python.exe`
-   - Arguments: `main.py --mode poll`
-   - Start in: Project directory
-
-### Pros
-- ✅ Full control
-- ✅ No platform limits
-- ✅ Free
-- ✅ Can run webhook mode with port forwarding
-
-### Cons
-- ❌ Requires always-on machine
-- ❌ Manual setup
-- ❌ No automatic updates
-
-## Configuration for Deployment
-
-### Environment Variables
-
-All platforms use environment variables. Here's the complete list:
+**Using Docker Compose (Recommended):**
 
 ```bash
-# GitLab
-GITLAB_URL=https://gitlab.com
-GITLAB_TOKEN=glpat-xxxxx
-GITLAB_PROJECT_ID=123456
-GITLAB_WEBHOOK_SECRET=your-secret
-
-# DeepSeek
-DEEPSEEK_API_KEY=sk-xxxxx
-DEEPSEEK_MODEL=deepseek-chat
-DEEPSEEK_TEMPERATURE=0.7
-
-# SMTP
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USERNAME=your-email@gmail.com
-SMTP_PASSWORD=your-app-password
-SMTP_FROM_EMAIL=your-email@gmail.com
-SMTP_TO_EMAIL=recipient@example.com
-
-# App
-APP_MODE=webhook|poll
-POLL_INTERVAL=900
-WEBHOOK_PORT=8000
-LOG_LEVEL=INFO
+# Create .env file from .env.example and add your config
+# Then start:
+docker-compose up -d
 ```
 
-### Config File Alternative
+**Using Docker directly:**
 
-For local deployment, you can use `config.json` instead of environment variables.
+```bash
+# Build production image
+docker build -t gitlab-issues-analyzer:latest .
+
+# Run with environment variables from .env file
+docker run -d \
+  --name gitlab-analyzer \
+  --restart unless-stopped \
+  --env-file .env \
+  -v $(pwd)/data:/app/data \
+  -p 8000:8000 \
+  gitlab-issues-analyzer:latest
+```
+
+**Required Environment Variables:**
+
+See `.env.example` for the complete list. Minimum required:
+- `GITLAB_URL`, `GITLAB_TOKEN`
+- `GITLAB_ISSUE_SCOPE`, `GITLAB_ISSUE_LABELS`
+- `AI_PROVIDER`, `AI_API_KEY`, `AI_MODEL`
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM_EMAIL`, `SMTP_TO_EMAIL`
+
+## Docker Compose Deployment
+
+### Quick Start with Docker Compose
+
+The easiest way to deploy is using `docker-compose.yml`:
+
+```bash
+# Start the application
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop the application
+docker-compose down
+```
+
+### Docker Compose Configuration
+
+The `docker-compose.yml` file includes:
+- Automatic restart policy
+- Data volume persistence (`./data`)
+- Health checks
+- Environment variable loading from `.env` file
+- Port mapping for dashboard/webhook (default: 8000)
+
+### Development with Live Code Mounting
+
+For development, use `docker-compose.dev.yml` to mount code for live updates:
+
+```bash
+docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+```
+
+This mounts the source code, so changes are picked up automatically without rebuilding.
+
+## Health Checks
+
+### Docker Health Check
+
+The Dockerfile includes a health check that verifies Python is working:
+
+```dockerfile
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python3 -c "import sys; sys.exit(0)" || exit 1
+```
+
+### Health Endpoint
+
+The application exposes a health endpoint (available in both poll and webhook modes):
+
+```bash
+curl http://localhost:8000/health
+```
+
+Response:
+
+```json
+{
+  "status": "healthy",
+  "service": "GitLab Issues Analyzer",
+  "version": "0.1.0"
+}
+```
+
+The health endpoint is always available when the Flask server is running (which starts automatically for the dashboard).
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **Webhook Not Receiving Events**
-   - Check webhook URL is accessible
-   - Verify secret token matches
-   - Check GitLab webhook logs
-   - Ensure webhook is enabled for "Issue events"
+**Issue**: Container exits immediately
 
-2. **API Rate Limits**
-   - Reduce polling frequency
-   - Implement rate limiting in code
-   - Check API usage limits
+- **Solution**: Check logs with `docker logs gitlab-analyzer`
+- **Solution**: Verify all required environment variables are set
 
-3. **Email Not Sending**
-   - Verify SMTP credentials
-   - Check firewall/network restrictions
-   - Use app password for Gmail
-   - Check SMTP server logs
+**Issue**: Cannot connect to GitLab API
 
-4. **DeepSeek API Errors**
-   - Verify API key is valid
-   - Check API rate limits
-   - Verify model name is correct
-   - Check API status page
+- **Solution**: Verify `GITLAB_URL` and `GITLAB_TOKEN` are correct
+- **Solution**: Check network connectivity
 
-5. **Deployment Failures**
-   - Check build logs
-   - Verify Python version compatibility
-   - Ensure all dependencies are in `requirements.txt`
-   - Check environment variables are set
+**Issue**: Email sending fails
 
-### Debug Mode
+- **Solution**: Verify SMTP credentials
+- **Solution**: Check firewall rules for SMTP port
+- **Solution**: For Gmail, use App Password instead of regular password
 
-Enable debug logging:
-```bash
-export LOG_LEVEL=DEBUG
-python main.py
-```
+**Issue**: Dashboard not accessible
 
-### Health Check
+- **Solution**: Verify port is exposed (default: 8000)
+- **Solution**: Check firewall rules
+- **Solution**: Verify `WEBHOOK_PORT` environment variable matches exposed port
 
-Test individual components:
-```bash
-# Test GitLab connection
-python -c "from src.gitlab_client import GitLabClient; print(GitLabClient().test_connection())"
+### Debugging
 
-# Test SMTP
-python -c "from src.email_sender import EmailSender; EmailSender().test_connection()"
-```
+1. **View logs:**
 
-## Next Steps
+   ```bash
+   # Using Docker Compose
+   docker-compose logs -f
+   
+   # Using Docker directly
+   docker logs -f gitlab-analyzer
+   ```
 
-After deployment:
+2. **Execute commands in container:**
 
-1. Monitor logs for first few issues
-2. Verify email delivery
-3. Check analysis quality
-4. Adjust configuration as needed
-5. Set up monitoring/alerts (optional)
+   ```bash
+   # Using Docker Compose
+   docker-compose exec gitlab-analyzer /bin/bash
+   
+   # Using Docker directly
+   docker exec -it gitlab-analyzer /bin/bash
+   ```
 
+3. **Test configuration:**
+   ```bash
+   docker run --rm --env-file .env gitlab-issues-analyzer:latest python3 -c "from src.config import load_config, validate_config; config = load_config(); validate_config(config); print('✓ Config valid')"
+   ```
 
+4. **Check dashboard:**
+   - Open browser to `http://localhost:8000` (or configured port)
+   - View statistics and configuration
+   - Test manual trigger
+
+## Best Practices
+
+1. **Security**:
+
+   - Use secrets management (Docker secrets, Kubernetes secrets, etc.)
+   - Never commit credentials to version control
+   - Use non-root user in containers
+   - Enable TLS/SSL for SMTP
+
+2. **Monitoring**:
+
+   - Set up log aggregation
+   - Monitor container health
+   - Set up alerts for failures
+
+3. **Backup**:
+
+   - Backup `data/analysis_cache.json` (contains processed issues and analysis results)
+   - Keep `.env` file backups (securely stored)
+   - Document deployment procedures
+
+4. **Updates**:
+   - Use version tags for Docker images
+   - Test updates in staging first
+   - Have rollback procedures ready
+
+---
+
+**Last Updated**: See document header for last update date.
+
+**Documentation Version**: 1.0

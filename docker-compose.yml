@@ -1,0 +1,56 @@
+services:
+  gitlab-analyzer:
+    build: .
+    container_name: gitlab-issues-analyzer
+    restart: unless-stopped
+    ports:
+      - "${WEBHOOK_PORT:-8000}:8000"
+    # Volumes for development (mounted in docker-compose.dev.yml or docker-compose.override.yml)
+    # In production, code is copied into image during build
+    volumes:
+      # Data persistence (processed issues file, etc.)
+      - ./data:/app/data:rw
+    environment:
+      # GitLab Configuration
+      - GITLAB_URL=${GITLAB_URL}
+      - GITLAB_TOKEN=${GITLAB_TOKEN}
+      - GITLAB_ISSUE_SCOPE=${GITLAB_ISSUE_SCOPE:-all}
+      - GITLAB_ISSUE_LABELS=${GITLAB_ISSUE_LABELS:-}
+      
+      # AI Provider Configuration
+      - AI_PROVIDER=${AI_PROVIDER:-openrouter}
+      - AI_API_KEY=${AI_API_KEY}
+      - AI_MODEL=${AI_MODEL:-deepseek/deepseek-v3.2}
+      - AI_MAX_TOKENS=${AI_MAX_TOKENS:-16000}
+      - AI_ENABLE_REASONING=${AI_ENABLE_REASONING:-true}
+      
+      # SMTP Configuration
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USERNAME=${SMTP_USERNAME}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL}
+      - SMTP_TO_EMAIL=${SMTP_TO_EMAIL}
+      
+      # Application Configuration
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+      - ENABLE_AUTOMATION=${ENABLE_AUTOMATION:-true}
+      - APP_MODE=${APP_MODE:-poll}
+      - POLL_INTERVAL=${POLL_INTERVAL:-900}
+      - WEBHOOK_PORT=8000
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - MAX_ISSUES_PER_POLL=${MAX_ISSUES_PER_POLL:-}
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+

@@ -31,7 +31,7 @@ The GitLab Issues Analyzer is a lightweight, event-driven system that monitors G
           │                      │                     │
           ▼                      ▼                     ▼
     ┌─────────┐          ┌─────────────┐        ┌──────────┐
-    │ GitLab  │          │  DeepSeek   │        │   SMTP   │
+    │ GitLab  │          │  OpenRouter │        │   SMTP   │
     │   API   │          │     API     │        │  Server  │
     └─────────┘          └─────────────┘        └──────────┘
 ```
@@ -56,7 +56,7 @@ The GitLab Issues Analyzer is a lightweight, event-driven system that monitors G
 - Optional: File-based tracking for persistence across restarts
 
 #### 3.2.2 Analyzer Component
-**Responsibility**: Analyze issues using AI API (DeepSeek, ChatGPT, etc.)
+**Responsibility**: Analyze issues using AI API (OpenRouter, OpenAI)
 
 **Key Functions**:
 - `analyze_issue(issue_data)`: Main analysis function
@@ -67,10 +67,8 @@ The GitLab Issues Analyzer is a lightweight, event-driven system that monitors G
 - `format_wwwh_tr(analysis)`: Structure analysis into WWWH-TR format
 
 **Supported AI Providers**:
-- DeepSeek (deepseek-chat, deepseek-reasoner)
-- OpenAI ChatGPT (gpt-4, gpt-3.5-turbo)
-- Anthropic Claude (claude-3-opus, claude-3-sonnet)
-- Other OpenAI-compatible APIs
+- OpenRouter (supports multiple models including deepseek/deepseek-v3.2, openai/gpt-4, etc.)
+- OpenAI (gpt-4, gpt-4-turbo, gpt-3.5-turbo)
 
 **Prompt Template**:
 ```
@@ -146,7 +144,7 @@ Body:
 2. Monitor → Validate & Extract Issue Data
 3. Monitor → Fetch Comprehensive Issue Data (comments, related issues, attachments)
 4. Monitor → Analyzer Component (with comprehensive issue data)
-5. Analyzer → AI API (DeepSeek/ChatGPT/Claude) → Analysis Response
+5. Analyzer → AI API (OpenRouter/OpenAI) → Analysis Response
 6. Analyzer → Reporter Component (with issue data + analysis)
 7. Reporter → Generate Email → SMTP Server
 8. Reporter → Email Delivered
@@ -160,7 +158,7 @@ Body:
 3. Monitor → Filter New Issues (compare with processed set)
 4. Monitor → Fetch Comprehensive Issue Data (comments, related issues, attachments)
 5. Monitor → Analyzer Component (for each new issue with comprehensive data)
-6. Analyzer → AI API (DeepSeek/ChatGPT/Claude) → Analysis Response
+6. Analyzer → AI API (OpenRouter/OpenAI) → Analysis Response
 7. Analyzer → Reporter Component (with issue data + analysis)
 8. Reporter → Generate Email → SMTP Server
 9. Reporter → Email Delivered
@@ -177,7 +175,7 @@ Body:
 
 ### 5.2 External APIs
 - **GitLab API**: REST API v4
-- **DeepSeek API**: Chat API with thinking mode
+- **OpenRouter API**: Unified API for multiple AI models (supports reasoning mode)
 - **SMTP**: Standard SMTP protocol
 
 ### 5.3 Dependencies
@@ -191,7 +189,7 @@ python-dotenv>=1.0.0  # For environment variables
 
 ### 6.1 Configuration Sources (Priority Order)
 1. Environment variables (highest priority)
-2. `config.json` file
+2. Environment variables (from `.env` file or system environment)
 3. Default values
 
 ### 6.2 Configuration Structure
@@ -230,7 +228,7 @@ python-dotenv>=1.0.0  # For environment variables
 
 ### 7.1 Error Categories
 
-1. **API Errors** (GitLab, DeepSeek)
+1. **API Errors** (GitLab, AI Provider)
    - Retry with exponential backoff
    - Log error details
    - Continue processing other issues
@@ -341,7 +339,7 @@ python-dotenv>=1.0.0  # For environment variables
     │         │
     ▼         ▼
 ┌────────┐ ┌──────────┐
-│GitLab  │ │ DeepSeek │
+│GitLab  │ │OpenRouter│
 │  API   │ │   API    │
 └────────┘ └──────────┘
 ```
@@ -362,7 +360,7 @@ python-dotenv>=1.0.0  # For environment variables
 
 ### 13.1 Response Times
 - Webhook processing: < 1 second
-- Issue analysis: 30-120 seconds (DeepSeek API)
+- Issue analysis: 30-120 seconds (AI API, depends on model and reasoning mode)
 - Email sending: 1-5 seconds
 - **Total**: 2-5 minutes per issue
 

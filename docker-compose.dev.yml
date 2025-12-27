@@ -1,0 +1,28 @@
+# Development override for docker-compose.yml
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+services:
+  gitlab-analyzer:
+    # Mount source code for live development (no rebuild needed)
+    volumes:
+      # Mount source code (read-write for development)
+      - ./src:/app/src:rw
+      - ./main.py:/app/main.py:rw
+      - ./templates:/app/templates:ro
+      
+      # Mount data directory for persistence (processed issues, etc.)
+      - ./data:/app/data:rw
+      
+      
+    # Override command to enable auto-reload (if using a tool like watchdog)
+    # For Python, changes will be picked up on next execution (poll cycle)
+    # For webhook mode, you may want to use a process manager like supervisor
+    # command: ["python3", "-u", "main.py", "--mode", "poll"]
+    
+    # Development: Enable more verbose logging
+    environment:
+      - LOG_LEVEL=DEBUG
+      
+    # Development: Remove restart policy to allow manual control
+    restart: "no"
+

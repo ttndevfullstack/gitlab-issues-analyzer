@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Issue Details - GitLab Issues Analyzer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+            border: 1px solid rgba(102, 126, 234, 0.1);
+        }
+        
+        .header h1 {
+            color: #333;
+            font-size: 36px;
+            margin-bottom: 12px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+        
+        .header p {
+            color: #666;
+            font-size: 17px;
+            font-weight: 400;
+            margin-bottom: 20px;
+        }
+        
+        .nav {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+        
+        .nav a {
+            display: inline-block;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 15px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        
+        .nav a:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+        }
+        
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 35px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+            border: 1px solid rgba(102, 126, 234, 0.1);
+        }
+        
+        .card h2 {
+            color: #333;
+            font-size: 26px;
+            margin-bottom: 25px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 12px;
+            font-weight: 600;
+        }
+        
+        .issue-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .info-item {
+            padding: 15px;
+            background-color: #f5f5f5;
+            border-radius: 8px;
+        }
+        
+        .info-item label {
+            display: block;
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .info-item value {
+            display: block;
+            font-size: 16px;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #218838;
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .email-preview {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            background-color: #f9f9f9;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        
+        .email-preview iframe {
+            width: 100%;
+            border: none;
+            min-height: 500px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        .status {
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-weight: 600;
+        }
+        
+        .status.success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Issue Details</h1>
+            <p>View issue analysis and email report</p>
+            <nav class="nav">
+                <a href="/dashboard">Dashboard</a>
+                <a href="/issues">Processed Issues</a>
+            </nav>
+        </div>
+        
+        <div id="loading" class="card loading">Loading issue details...</div>
+        <div id="error" class="card error" style="display: none;"></div>
+        
+        <div id="content" style="display: none;">
+            <div class="card">
+                <h2>Issue Information</h2>
+                <div class="issue-info" id="issueInfo">
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2>Actions</h2>
+                <div class="actions">
+                    <button class="btn btn-primary" onclick="reanalyze()">Reanalyze (No Email)</button>
+                    <button class="btn btn-secondary" onclick="resend()">Resend Email</button>
+                    <button class="btn btn-success" onclick="reanalyzeAndResend()">Reanalyze & Resend</button>
+                </div>
+                <div id="actionStatus"></div>
+            </div>
+            
+            <div class="card">
+                <h2>Email Report Preview</h2>
+                <div class="email-preview" id="emailPreview">
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const issueId = {{ issue_id }};
+        
+        async function loadIssueDetails() {
+            const loading = document.getElementById('loading');
+            const error = document.getElementById('error');
+            const content = document.getElementById('content');
+            
+            try {
+                const response = await fetch(`/api/issues/${issueId}`);
+                const data = await response.json();
+                
+                if (response.status !== 200) {
+                    throw new Error(data.error || 'Failed to load issue');
+                }
+                
+                loading.style.display = 'none';
+                error.style.display = 'none';
+                content.style.display = 'block';
+                
+                // Display issue information
+                const issueData = data.issue_data || {};
+                const issueInfo = document.getElementById('issueInfo');
+                issueInfo.innerHTML = `
+                    <div class="info-item">
+                        <label>Issue ID</label>
+                        <value>#${data.issue_iid || issueId}</value>
+                    </div>
+                    <div class="info-item">
+                        <label>Title</label>
+                        <value>${issueData.title || 'Untitled'}</value>
+                    </div>
+                    <div class="info-item">
+                        <label>State</label>
+                        <value>${issueData.state || 'unknown'}</value>
+                    </div>
+                    <div class="info-item">
+                        <label>Project ID</label>
+                        <value>${issueData.project_id || 'N/A'}</value>
+                    </div>
+                    <div class="info-item">
+                        <label>URL</label>
+                        <value><a href="${issueData.web_url || '#'}" target="_blank">${issueData.web_url || 'N/A'}</a></value>
+                    </div>
+                `;
+                
+                // Display email preview
+                const emailReport = data.email_report || {};
+                const emailPreview = document.getElementById('emailPreview');
+                if (emailReport.html) {
+                    emailPreview.innerHTML = emailReport.html;
+                } else if (emailReport.text) {
+                    emailPreview.innerHTML = `<pre style="white-space: pre-wrap; font-family: inherit;">${emailReport.text}</pre>`;
+                } else {
+                    emailPreview.innerHTML = '<p style="color: #999;">No email report available</p>';
+                }
+            } catch (err) {
+                loading.style.display = 'none';
+                error.style.display = 'block';
+                error.textContent = `Error loading issue: ${err.message}`;
+                content.style.display = 'none';
+            }
+        }
+        
+        async function reanalyze() {
+            const statusDiv = document.getElementById('actionStatus');
+            statusDiv.innerHTML = '<div class="status">Reanalyzing...</div>';
+            
+            try {
+                const response = await fetch(`/api/issues/${issueId}/reanalyze`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    statusDiv.innerHTML = '<div class="status success">Reanalysis completed successfully!</div>';
+                    // Reload issue details after a short delay
+                    setTimeout(loadIssueDetails, 1000);
+                } else {
+                    statusDiv.innerHTML = `<div class="status error">Error: ${data.error || 'Reanalysis failed'}</div>`;
+                }
+            } catch (err) {
+                statusDiv.innerHTML = `<div class="status error">Error: ${err.message}</div>`;
+            }
+        }
+        
+        async function resend() {
+            const statusDiv = document.getElementById('actionStatus');
+            statusDiv.innerHTML = '<div class="status">Resending email...</div>';
+            
+            try {
+                const response = await fetch(`/api/issues/${issueId}/resend`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    statusDiv.innerHTML = '<div class="status success">Email sent successfully!</div>';
+                } else {
+                    statusDiv.innerHTML = `<div class="status error">Error: ${data.error || 'Failed to send email'}</div>`;
+                }
+            } catch (err) {
+                statusDiv.innerHTML = `<div class="status error">Error: ${err.message}</div>`;
+            }
+        }
+        
+        async function reanalyzeAndResend() {
+            const statusDiv = document.getElementById('actionStatus');
+            statusDiv.innerHTML = '<div class="status">Reanalyzing and sending email...</div>';
+            
+            try {
+                const response = await fetch(`/api/issues/${issueId}/reanalyze-and-resend`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    statusDiv.innerHTML = '<div class="status success">Reanalysis completed and email sent successfully!</div>';
+                    // Reload issue details after a short delay
+                    setTimeout(loadIssueDetails, 1000);
+                } else {
+                    statusDiv.innerHTML = `<div class="status error">Error: ${data.error || 'Operation failed'}</div>`;
+                }
+            } catch (err) {
+                statusDiv.innerHTML = `<div class="status error">Error: ${err.message}</div>`;
+            }
+        }
+        
+        // Load issue details on page load
+        loadIssueDetails();
+    </script>
+</body>
+</html>
+

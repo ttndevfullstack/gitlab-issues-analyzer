@@ -46,7 +46,7 @@ Automate the analysis of GitLab issues to reduce manual review time. The system 
   - **Additional metadata** (weight, time tracking, etc.)
 
 - **FR2.2**: System must send comprehensive issue data to AI API for analysis
-- **FR2.2.1**: System must support multiple AI providers (DeepSeek, OpenAI ChatGPT, Anthropic Claude, etc.)
+- **FR2.2.1**: System must support multiple AI providers (OpenRouter, OpenAI)
 - **FR2.2.2**: System must allow dynamic model selection via configuration
 - **FR2.2.3**: System must use OpenAI-compatible API interface for flexibility
 
@@ -143,7 +143,7 @@ Automate the analysis of GitLab issues to reduce manual review time. The system 
 - **IR4**: Webhook support (if available)
 
 ### 5.2 AI API Integration
-- **IR5**: Support for multiple AI providers (DeepSeek, OpenAI, Anthropic, etc.)
+- **IR5**: Support for multiple AI providers (OpenRouter, OpenAI)
 - **IR6**: OpenAI-compatible API interface
 - **IR7**: Dynamic model selection
 - **IR8**: Support for thinking/reasoning modes when available

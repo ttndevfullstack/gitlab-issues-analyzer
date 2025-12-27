@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitLab Issues Analyzer - Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+            border: 1px solid rgba(102, 126, 234, 0.1);
+        }
+        
+        .header h1 {
+            color: #333;
+            font-size: 36px;
+            margin-bottom: 12px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+        
+        .header p {
+            color: #666;
+            font-size: 17px;
+            font-weight: 400;
+            margin-bottom: 20px;
+        }
+        
+        .nav {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+        
+        .nav a {
+            display: inline-block;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 15px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        
+        .nav a:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+        }
+        
+        .nav a.active {
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        }
+        
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 35px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+            border: 1px solid rgba(102, 126, 234, 0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+        }
+        
+        .card h2 {
+            color: #333;
+            font-size: 26px;
+            margin-bottom: 25px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 12px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .form-group label {
+            display: block;
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 10px;
+            font-size: 15px;
+            letter-spacing: 0.2px;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s;
+            background: #fafafa;
+        }
+        
+        .form-group input:hover {
+            border-color: #c0c0c0;
+            background: #fff;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 16px 32px;
+            border-radius: 10px;
+            font-size: 17px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+            letter-spacing: 0.3px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .status {
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 15px;
+            display: none;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .loading.active {
+            display: block;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .help-text {
+            color: #888;
+            font-size: 13px;
+            margin-top: 6px;
+            display: block;
+            font-weight: 400;
+        }
+        
+        .card > p {
+            color: #666;
+            font-size: 15px;
+            line-height: 1.6;
+            margin-bottom: 25px;
+        }
+        
+        .config-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .config-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+        
+        .config-item {
+            display: flex;
+            flex-direction: column;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 3px solid #667eea;
+        }
+        
+        .config-item-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+        
+        .config-item-value {
+            font-size: 14px;
+            color: #333;
+            font-weight: 500;
+            word-break: break-word;
+        }
+        
+        .config-item-value.badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            width: fit-content;
+        }
+        
+        .config-item-value.badge.enabled {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .config-item-value.badge.disabled {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .config-item-value.badge.production {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        
+        .config-item-value.badge.development {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .config-item-value.badge.testing {
+            background: #e2e3e5;
+            color: #383d41;
+        }
+        
+        .status {
+            padding: 16px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+            font-size: 15px;
+            line-height: 1.5;
+        }
+        
+        .status strong {
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 GitLab Issues Analyzer</h1>
+            <p>Automated AI-powered issue analysis and email reporting</p>
+            <nav class="nav">
+                <a href="/dashboard" class="active">Dashboard</a>
+                <a href="/issues">Processed Issues</a>
+            </nav>
+            
+            <div class="config-section">
+                <div class="config-grid" id="configGrid">
+                    <div class="config-item">
+                        <span class="config-item-label">GitLab Labels</span>
+                        <span class="config-item-value" id="configGitlabLabels">-</span>
+                    </div>
+                    <div class="config-item">
+                        <span class="config-item-label">GitLab URL</span>
+                        <span class="config-item-value" id="configGitlabUrl">-</span>
+                    </div>
+                    <div class="config-item">
+                        <span class="config-item-label">AI Provider</span>
+                        <span class="config-item-value" id="configAiProvider">-</span>
+                    </div>
+                    <div class="config-item">
+                        <span class="config-item-label">AI Model</span>
+                        <span class="config-item-value" id="configAiModel">-</span>
+                    </div>
+                    <div class="config-item">
+                        <span class="config-item-label">AI Reasoning</span>
+                        <span class="config-item-value badge" id="configAiReasoning">-</span>
+                    </div>
+                    <div class="config-item">
+                        <span class="config-item-label">Environment</span>
+                        <span class="config-item-value badge" id="configEnvironment">-</span>
+                    </div>
+                    <div class="config-item">
+                        <span class="config-item-label">Poll Interval</span>
+                        <span class="config-item-value" id="configPollInterval">-</span>
+                    </div>
+                    <div class="config-item">
+                        <span class="config-item-label">Max Issues/Poll</span>
+                        <span class="config-item-value" id="configMaxIssues">-</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>📊 Statistics</h2>
+            <div class="config-grid" id="statsGrid">
+                <div class="config-item">
+                    <span class="config-item-label">Processed Issues</span>
+                    <span class="config-item-value" id="processedCount">-</span>
+                </div>
+                <div class="config-item">
+                    <span class="config-item-label">Application Mode</span>
+                    <span class="config-item-value" id="appMode">-</span>
+                </div>
+                <div class="config-item">
+                    <span class="config-item-label">Automation Status</span>
+                    <span class="config-item-value badge" id="automationStatus">-</span>
+                </div>
+                <div class="config-item">
+                    <span class="config-item-label">GitLab Instance</span>
+                    <span class="config-item-value" id="gitlabUrl">-</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>🔧 Manual Trigger</h2>
+            <p style="color: #666; margin-bottom: 20px;">
+                Manually trigger analysis for a specific GitLab issue by providing the Project ID and Issue ID (IID).
+            </p>
+            
+            <form id="triggerForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="projectId">Project ID *</label>
+                        <input type="number" id="projectId" name="projectId" required placeholder="e.g., 31">
+                        <span class="help-text">The GitLab project ID where the issue belongs</span>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="issueIid">Issue ID (IID) *</label>
+                        <input type="number" id="issueIid" name="issueIid" required placeholder="e.g., 366">
+                        <span class="help-text">The internal issue ID (IID) shown in GitLab (e.g., #366)</span>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn" id="submitBtn">
+                    🚀 Trigger Analysis
+                </button>
+            </form>
+            
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p style="margin-top: 10px; color: #666;">Processing issue analysis...</p>
+            </div>
+            
+            <div class="status" id="status"></div>
+        </div>
+    </div>
+    
+    <script>
+        // Load statistics on page load
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const data = await response.json();
+                
+                // Update statistics
+                document.getElementById('processedCount').textContent = data.processed_count || 0;
+                document.getElementById('appMode').textContent = data.app_mode || 'Unknown';
+                
+                const automationEl = document.getElementById('automationStatus');
+                automationEl.textContent = data.automation_enabled !== false ? 'Enabled' : 'Disabled';
+                automationEl.className = 'config-item-value badge ' + (data.automation_enabled !== false ? 'enabled' : 'disabled');
+                
+                document.getElementById('gitlabUrl').textContent = data.gitlab_url ? new URL(data.gitlab_url).hostname : 'Not configured';
+                
+                // Update configuration
+                if (data.config) {
+                    const cfg = data.config;
+                    const gitlabLabels = cfg.gitlab_labels || cfg.gitlab_issue_labels;
+                    document.getElementById('configGitlabLabels').textContent = gitlabLabels && gitlabLabels.length > 0 ? gitlabLabels.join(', ') : 'Not configured';
+                    document.getElementById('configGitlabUrl').textContent = cfg.gitlab_url || 'Not configured';
+                    document.getElementById('configAiProvider').textContent = cfg.ai_provider || 'Unknown';
+                    document.getElementById('configAiModel').textContent = cfg.ai_model || 'Unknown';
+                    
+                    const reasoningEl = document.getElementById('configAiReasoning');
+                    reasoningEl.textContent = cfg.ai_reasoning ? 'Enabled' : 'Disabled';
+                    reasoningEl.className = 'config-item-value badge ' + (cfg.ai_reasoning ? 'enabled' : 'disabled');
+                    
+                    const envEl = document.getElementById('configEnvironment');
+                    const env = (cfg.environment || 'unknown').toLowerCase();
+                    envEl.textContent = env.charAt(0).toUpperCase() + env.slice(1);
+                    envEl.className = 'config-item-value badge ' + env;
+                    
+                    const pollInterval = cfg.poll_interval || 900;
+                    document.getElementById('configPollInterval').textContent = pollInterval + 's (' + Math.round(pollInterval / 60) + ' min)';
+                    
+                    const maxIssues = cfg.max_issues_per_poll;
+                    document.getElementById('configMaxIssues').textContent = maxIssues !== null && maxIssues !== undefined ? maxIssues : 'Unlimited';
+                }
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+        
+        // Handle form submission
+        document.getElementById('triggerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const projectId = document.getElementById('projectId').value;
+            const issueIid = document.getElementById('issueIid').value;
+            const submitBtn = document.getElementById('submitBtn');
+            const loading = document.getElementById('loading');
+            const status = document.getElementById('status');
+            
+            // Reset UI
+            submitBtn.disabled = true;
+            loading.classList.add('active');
+            status.style.display = 'none';
+            
+            try {
+                const response = await fetch('/api/trigger', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        project_id: parseInt(projectId),
+                        issue_iid: parseInt(issueIid)
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    status.className = 'status success';
+                    status.innerHTML = `✅ <strong>Success!</strong> ${data.message || 'Issue analysis triggered successfully.'}`;
+                    status.style.display = 'block';
+                    
+                    // Reload stats
+                    loadStats();
+                    
+                    // Clear form
+                    document.getElementById('triggerForm').reset();
+                } else {
+                    status.className = 'status error';
+                    status.innerHTML = `❌ <strong>Error:</strong> ${data.error || 'Failed to trigger analysis.'}`;
+                    status.style.display = 'block';
+                }
+            } catch (error) {
+                status.className = 'status error';
+                status.innerHTML = `❌ <strong>Error:</strong> ${error.message || 'Network error occurred.'}`;
+                status.style.display = 'block';
+            } finally {
+                submitBtn.disabled = false;
+                loading.classList.remove('active');
+            }
+        });
+        
+        // Load stats on page load
+        loadStats();
+        
+        // Auto-refresh stats every 30 seconds
+        setInterval(loadStats, 30000);
+    </script>
+</body>
+</html>
+

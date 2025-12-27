@@ -1,0 +1,59 @@
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info
+dist
+build
+.pytest_cache
+.coverage
+htmlcov/
+
+# Virtual environments
+.env
+.venv
+venv/
+ENV/
+env/
+
+# Git
+.git
+.gitignore
+
+# Documentation (not needed in container)
+*.md
+docs/
+README.md
+
+# Tests (not needed in container)
+tests/
+requirements-test.txt
+pytest.ini
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Data directory (mounted as volume in development)
+data/
+
+# Docker files (not needed inside container)
+Dockerfile
+docker-compose.yml
+docker-compose.dev.yml
+docker-compose.override.yml
+.dockerignore

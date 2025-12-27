@@ -16,8 +16,8 @@
 
 ### Q: Is this free?
 **A**: Yes, designed to use free tiers:
-- Free deployment platforms (GitHub Actions, Railway, etc.)
-- DeepSeek free tier (check current limits)
+- Free deployment platforms (Docker, local deployment)
+- OpenRouter/OpenAI free tiers (check current limits)
 - No database or paid services required
 
 ### Q: How long does analysis take?
@@ -43,7 +43,7 @@
 **A**: Python 3.9 or higher.
 
 ### Q: Can I analyze multiple projects?
-**A**: Currently single project. Multiple projects can be added by running multiple instances or modifying the code.
+**A**: Yes, the system uses the global GitLab issues API endpoint which can return issues from multiple projects. Filter by labels using `GITLAB_ISSUE_LABELS` to target specific issues.
 
 ## Configuration Questions
 
@@ -53,12 +53,12 @@
 2. Create token with `api` scope
 3. Copy token (starts with `glpat-`)
 
-### Q: How do I get a DeepSeek API key?
+### Q: How do I get an OpenRouter API key?
 **A**: 
-1. Sign up at [platform.deepseek.com](https://platform.deepseek.com/)
+1. Sign up at [openrouter.ai](https://openrouter.ai/)
 2. Go to API Keys section
 3. Create new key
-4. Copy key (starts with `sk-`)
+4. Copy key (starts with `sk-or-`)
 
 ### Q: Can I use Gmail for SMTP?
 **A**: Yes, but you need an App Password:
@@ -80,9 +80,9 @@
 
 ### Q: Which deployment platform is best?
 **A**: Depends on needs:
-- **GitHub Actions**: Free, easy, polling only
-- **Railway/Render**: Free tier, webhook support
+- **Docker/Docker Compose**: Recommended, easy setup, supports both polling and webhook modes
 - **Local**: Full control, requires always-on machine
+- **Cloud platforms**: Can deploy Docker containers to various cloud providers
 
 ### Q: How do I set up GitLab webhook?
 **A**: 
@@ -118,7 +118,7 @@
 ## Troubleshooting
 
 ### Q: "Missing required configuration" error
-**A**: Check all required fields in `config.json` or environment variables are set.
+**A**: Check all required environment variables are set in your `.env` file or system environment.
 
 ### Q: "GitLab API authentication failed"
 **A**: 
@@ -132,11 +132,11 @@
 - Check SMTP host and port
 - Verify firewall isn't blocking
 
-### Q: "DeepSeek API error"
+### Q: "AI API error"
 **A**: 
-- Verify API key is valid
+- Verify API key is valid (OpenRouter or OpenAI)
 - Check API key has credits
-- Verify model name is correct
+- Verify model name is correct (e.g., `deepseek/deepseek-v3.2` for OpenRouter)
 
 ### Q: Webhook not receiving events
 **A**: 
@@ -153,19 +153,19 @@
 
 ## Cost Questions
 
-### Q: How much will DeepSeek API cost?
-**A**: Check DeepSeek pricing. Free tier usually has limits. Monitor usage in DeepSeek dashboard.
+### Q: How much will AI API cost?
+**A**: Check OpenRouter or OpenAI pricing. Free tiers usually have limits. Monitor usage in the provider dashboard.
 
 ### Q: Are there any hidden costs?
 **A**: No, if you stay within free tiers:
-- Deployment: Free (GitHub Actions, Railway free tier)
+- Deployment: Free (Docker, local deployment)
 - GitLab: Free (API access included)
 - SMTP: Free (Gmail/Outlook free tier)
-- DeepSeek: Free tier (check limits)
+- AI API: Free tier (check OpenRouter/OpenAI limits)
 
 ### Q: What if I exceed free tier limits?
 **A**: 
-- DeepSeek: Upgrade to paid tier or reduce usage
+- AI API: Upgrade to paid tier or reduce usage (OpenRouter/OpenAI)
 - Deployment: Some platforms have paid tiers, but free tier usually sufficient
 - GitLab: API limits are generous (2000 req/hour)
 
@@ -173,7 +173,7 @@
 
 ### Q: Are my credentials safe?
 **A**: 
-- Never commit `config.json` to git (it's in `.gitignore`)
+- Never commit `.env` file to git (it's in `.gitignore`)
 - Use environment variables in production
 - Use App Passwords (not main passwords)
 - Rotate credentials periodically

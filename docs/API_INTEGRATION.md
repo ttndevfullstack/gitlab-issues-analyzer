@@ -1,6 +1,6 @@
 # API Integration Guide
 
-This document details the integration with GitLab API and AI APIs (DeepSeek, OpenAI ChatGPT, Anthropic Claude, etc.).
+This document details the integration with GitLab API and AI APIs (OpenRouter, OpenAI).
 
 ## Table of Contents
 
@@ -34,11 +34,55 @@ PRIVATE-TOKEN: glpat-xxxxxxxxxxxx
 
 ### API Endpoints Used
 
-#### 1. Get Project Issues
+#### 1. Get Issues (Global Endpoint - Recommended)
+
+**Endpoint**: `GET /api/v4/issues`
+
+**Purpose**: Fetch list of issues from all accessible projects (polling mode)
+
+**When to Use**: When `project_id` is not configured (recommended for multi-project monitoring)
+
+**Parameters**:
+- `state`: `opened` (default) - Issue state filter
+- `scope`: `all` (optional) - Scope filter (all, assigned_to_me, created_by_me, etc.)
+- `labels`: `UNIOSS 3` (optional) - Comma-separated label names
+- `order_by`: `created_at`
+- `sort`: `desc`
+- `per_page`: `20` (max 100)
+- `created_after`: ISO 8601 timestamp (for filtering new issues)
+
+**Example Request**:
+```http
+GET /api/v4/issues?scope=all&state=opened&labels=UNIOSS+3&order_by=created_at&sort=desc&per_page=20
+Headers:
+  PRIVATE-TOKEN: glpat-xxxxxxxxxxxx
+```
+
+**Example Response**:
+```json
+[
+  {
+    "id": 3664,
+    "iid": 366,
+    "project_id": 31,
+    "title": "Issue title",
+    "description": "Issue description...",
+    "state": "opened",
+    "created_at": "2025-12-23T12:00:03.030+09:00",
+    "updated_at": "2025-12-23T17:23:23.249+09:00",
+    "labels": ["UNIOSS 3", "優先度 中", "改修依頼"],
+    "web_url": "https://gitlab.unioss.jp/unioss/FrontEnd/-/issues/366"
+  }
+]
+```
+
+#### 2. Get Project Issues (Legacy - Project-Specific)
 
 **Endpoint**: `GET /api/v4/projects/{project_id}/issues`
 
-**Purpose**: Fetch list of issues (polling mode)
+**Purpose**: Fetch list of issues from a specific project (polling mode)
+
+**When to Use**: When `project_id` is configured (single project monitoring)
 
 **Parameters**:
 - `state`: `opened` (default)
@@ -75,15 +119,17 @@ Headers:
 ]
 ```
 
-#### 2. Get Single Issue
+#### 3. Get Single Issue
 
 **Endpoint**: `GET /api/v4/projects/{project_id}/issues/{issue_iid}`
 
 **Purpose**: Fetch detailed issue information
 
+**Note**: When using global endpoint, `project_id` is extracted from the issue data returned by the list endpoint.
+
 **Example Request**:
 ```http
-GET /api/v4/projects/123456/issues/5
+GET /api/v4/projects/31/issues/366
 Headers:
   PRIVATE-TOKEN: glpat-xxxxxxxxxxxx
 ```
@@ -417,31 +463,46 @@ def get_comprehensive_issue_data(issue_iid: int) -> Dict:
 
 ### Overview
 
-The application supports multiple AI providers to analyze GitLab issues using the WWWH-TR framework. Supported providers include:
-- **DeepSeek** (deepseek-chat, deepseek-reasoner)
-- **OpenAI ChatGPT** (gpt-4, gpt-3.5-turbo, gpt-4-turbo)
-- **Anthropic Claude** (claude-3-opus, claude-3-sonnet, claude-3-haiku)
-- **Other OpenAI-compatible APIs** (Ollama, LocalAI, etc.)
+The application supports multiple AI providers to analyze GitLab issues using the WWWH-TR framework. 
 
-The system uses an OpenAI-compatible API interface for maximum flexibility.
+**Recommended Setup**: OpenRouter with DeepSeek v3.2 (with reasoning mode enabled)
+
+Supported providers:
+- **OpenRouter** (Recommended) - Access to DeepSeek v3.2 with reasoning/deepthink mode
+- **OpenAI** - ChatGPT models (gpt-4, gpt-3.5-turbo, etc.)
+
+The system uses an OpenAI-compatible API interface.
 
 ### Provider-Specific Configuration
 
-#### DeepSeek
-- **Base URL**: `https://api.deepseek.com/v1`
+#### OpenRouter (Recommended)
+- **Base URL**: `https://openrouter.ai/api/v1`
 - **Authentication**: API Key in `Authorization: Bearer` header
-- **Models**: `deepseek-chat`, `deepseek-reasoner`
+- **Models**: `deepseek/deepseek-v3.2` (recommended with reasoning mode)
+- **Reasoning Mode**: Enabled by default when `enable_reasoning=true`
+- **Request Format**: Includes `"reasoning": {"enabled": true}` in payload
+- **How to Get API Key**: Sign up at [OpenRouter](https://openrouter.ai/)
+
+**Example Request with Reasoning:**
+```json
+{
+  "model": "deepseek/deepseek-v3.2",
+  "messages": [
+    {"role": "system", "content": "..."},
+    {"role": "user", "content": "..."}
+  ],
+  "temperature": 0.7,
+  "max_tokens": 2000,
+  "reasoning": {
+    "enabled": true
+  }
+}
+```
 
 #### OpenAI ChatGPT
 - **Base URL**: `https://api.openai.com/v1`
 - **Authentication**: API Key in `Authorization: Bearer` header
 - **Models**: `gpt-4`, `gpt-4-turbo`, `gpt-3.5-turbo`
-
-#### Anthropic Claude
-- **Base URL**: `https://api.anthropic.com/v1`
-- **Authentication**: API Key in `x-api-key` header
-- **Models**: `claude-3-opus-20240229`, `claude-3-sonnet-20240229`, `claude-3-haiku-20240307`
-- **Note**: Requires adapter for OpenAI-compatible interface
 
 ### Common API Endpoint
 
@@ -449,6 +510,30 @@ The system uses an OpenAI-compatible API interface for maximum flexibility.
 
 ### Request Format
 
+**Standard Request (OpenRouter with Reasoning):**
+```json
+{
+  "model": "deepseek/deepseek-v3.2",
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are an expert software development analyst..."
+    },
+    {
+      "role": "user",
+      "content": "Analyze the following GitLab issue using WWWH-TR framework:\n\nTitle: Fix login bug\nDescription: Users cannot login..."
+    }
+  ],
+  "temperature": 0.7,
+  "max_tokens": 2000,
+  "stream": false,
+  "reasoning": {
+    "enabled": true
+  }
+}
+```
+
+**Standard Request (Other Providers):**
 ```json
 {
   "model": "deepseek-chat",
@@ -550,8 +635,8 @@ class AIAnalyzer:
     """Universal AI analyzer supporting multiple providers"""
     
     PROVIDERS = {
-        'deepseek': {
-            'base_url': 'https://api.deepseek.com/v1',
+        'openrouter': {
+            'base_url': 'https://openrouter.ai/api/v1',
             'auth_header': 'Authorization',
             'auth_prefix': 'Bearer'
         },
@@ -559,38 +644,26 @@ class AIAnalyzer:
             'base_url': 'https://api.openai.com/v1',
             'auth_header': 'Authorization',
             'auth_prefix': 'Bearer'
-        },
-        'anthropic': {
-            'base_url': 'https://api.anthropic.com/v1',
-            'auth_header': 'x-api-key',
-            'auth_prefix': ''
         }
     }
     
-    def __init__(self, provider: str, api_key: str, model: str):
+    def __init__(self, provider: str, api_key: str, model: str, enable_reasoning: bool = False):
         if provider not in self.PROVIDERS:
             raise ValueError(f"Unsupported provider: {provider}")
         
         self.provider = provider
         self.api_key = api_key
         self.model = model
+        self.enable_reasoning = enable_reasoning
         self.config = self.PROVIDERS[provider]
         self.base_url = self.config['base_url']
         
-        # Build headers based on provider
-        if self.config['auth_prefix']:
-            auth_value = f"{self.config['auth_prefix']} {api_key}"
-        else:
-            auth_value = api_key
-        
+        # Build headers
+        auth_value = f"{self.config['auth_prefix']} {api_key}"
         self.headers = {
             self.config['auth_header']: auth_value,
             'Content-Type': 'application/json'
         }
-        
-        # Anthropic requires additional headers
-        if provider == 'anthropic':
-            self.headers['anthropic-version'] = '2023-06-01'
     
     def analyze_issue(self, issue_data: Dict) -> str:
         """Analyze issue using configured AI provider"""
@@ -612,6 +685,10 @@ class AIAnalyzer:
             "max_tokens": 2000,
             "stream": False
         }
+        
+        # Add reasoning mode for OpenRouter
+        if self.enable_reasoning and self.provider == 'openrouter':
+            payload["reasoning"] = {"enabled": True}
         
         response = requests.post(
             f"{self.base_url}/chat/completions",
@@ -690,9 +767,8 @@ class AIAnalyzer:
 ### Cost Considerations
 
 **Provider Pricing** (check current pricing):
-- **DeepSeek**: Generally lower cost, good for high volume
+- **OpenRouter**: Varies by model (DeepSeek models generally lower cost, good for high volume)
 - **OpenAI**: Higher cost, excellent quality
-- **Anthropic**: Competitive pricing, strong reasoning
 
 **Optimization**:
 - Monitor `usage.total_tokens` in responses
@@ -741,9 +817,8 @@ class AIAnalyzer:
 - Solution: Retry with exponential backoff, consider fallback provider
 
 **Provider-Specific Errors**:
-- **Anthropic**: May require different error handling
+- **OpenRouter**: Check for model availability errors and regional restrictions
 - **OpenAI**: Check for model availability errors
-- **DeepSeek**: Check for regional restrictions
 
 ### Retry Strategy
 

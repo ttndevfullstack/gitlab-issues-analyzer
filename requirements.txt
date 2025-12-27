@@ -1,0 +1,17 @@
+# GitLab Issues Analyzer - Production Dependencies
+
+# HTTP Client for API requests
+requests>=2.31.0
+
+# Web Framework for webhook mode (lightweight)
+flask>=2.3.0
+
+# Environment variable management
+python-dotenv>=1.0.0
+
+# Email handling (built-in, but listed for clarity)
+# email and smtplib are part of Python standard library
+
+# Optional: For better type checking (if using mypy)
+# typing-extensions>=4.5.0
+
