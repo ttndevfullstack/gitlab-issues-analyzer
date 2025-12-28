@@ -19,8 +19,7 @@ from src.analysis_cache import AnalysisCache
 from src.analyzer import IssueAnalyzer
 from src.config import load_config, validate_config
 from src.email_sender import EmailSender
-from src.exceptions import (AnalysisError, ConfigurationError, EmailError,
-                            GitLabAPIError)
+from src.exceptions import AnalysisError, ConfigurationError, EmailError, GitLabAPIError
 from src.gitlab_client import GitLabClient
 from src.monitor import IssueMonitor
 from src.reporter import generate_email_report
