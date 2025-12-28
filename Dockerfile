@@ -1,5 +1,5 @@
 # Multi-stage Dockerfile for GitLab Issues Analyzer
-FROM python:3.11-slim as builder
+FROM python:3.11-slim AS builder
 
 # Set working directory
 WORKDIR /app
