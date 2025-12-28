@@ -12,8 +12,7 @@ Test cases:
 
 import pytest
 
-from src.reporter import (format_html_email, format_text_email,
-                          generate_email_report)
+from src.reporter import format_html_email, format_text_email, generate_email_report
 
 
 class TestReporter:
