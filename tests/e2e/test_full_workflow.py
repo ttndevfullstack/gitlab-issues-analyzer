@@ -23,9 +23,9 @@ class TestFullWorkflow:
         """TC-E2E-001: Complete workflow: webhook → analysis → email."""
         from src.analyzer import IssueAnalyzer  # type: ignore
         from src.email_sender import EmailSender  # type: ignore
+        from src.gitlab_client import GitLabClient  # type: ignore
         from src.monitor import IssueMonitor  # type: ignore
         from src.reporter import generate_email_report  # type: ignore
-        from src.gitlab_client import GitLabClient  # type: ignore
 
         # Step 1: Process webhook
         gitlab_client = GitLabClient("https://gitlab.com", "test-token", "123456")
@@ -91,9 +91,9 @@ class TestFullWorkflow:
         """TC-E2E-002: Complete workflow: polling → analysis → email."""
         from src.analyzer import IssueAnalyzer  # type: ignore
         from src.email_sender import EmailSender  # type: ignore
+        from src.gitlab_client import GitLabClient  # type: ignore
         from src.monitor import IssueMonitor  # type: ignore
         from src.reporter import generate_email_report  # type: ignore
-        from src.gitlab_client import GitLabClient  # type: ignore
 
         # Step 1: Poll for new issues
         gitlab_client = GitLabClient("https://gitlab.com", "test-token", "123456")
@@ -167,8 +167,8 @@ class TestFullWorkflow:
     def test_handle_error_in_workflow_gracefully(self, sample_webhook_payload):
         """TC-E2E-003: Handle error in workflow gracefully."""
         from src.analyzer import AnalysisError, IssueAnalyzer  # type: ignore
-        from src.monitor import IssueMonitor  # type: ignore
         from src.gitlab_client import GitLabClient  # type: ignore
+        from src.monitor import IssueMonitor  # type: ignore
 
         # Process webhook successfully
         gitlab_client = GitLabClient("https://gitlab.com", "test-token", "123456")
