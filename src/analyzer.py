@@ -299,7 +299,7 @@ class IssueAnalyzer:
         Args:
             provider: AI provider ('openrouter', 'openai')
             api_key: API key for the provider
-            model: Model name to use (e.g., 'deepseek/deepseek-v3.2' for OpenRouter)
+            model: Model name to use (e.g., 'tngtech/deepseek-r1t2-chimera:free' for OpenRouter)
             base_url: Optional custom base URL (overrides provider default)
             temperature: Sampling temperature (0.0-2.0)
             max_tokens: Maximum tokens in response

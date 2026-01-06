@@ -53,7 +53,7 @@ When a new GitLab issue is created, the system:
    # AI Provider
    AI_PROVIDER=openrouter
    AI_API_KEY=<your-token-here>
-   AI_MODEL=deepseek/deepseek-v3.2
+   AI_MODEL=tngtech/deepseek-r1t2-chimera:free
    AI_ENABLE_REASONING=true
    AI_MAX_TOKENS=16000
 

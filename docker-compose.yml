@@ -20,7 +20,7 @@ services:
       # AI Provider Configuration
       - AI_PROVIDER=${AI_PROVIDER:-openrouter}
       - AI_API_KEY=${AI_API_KEY}
-      - AI_MODEL=${AI_MODEL:-deepseek/deepseek-v3.2}
+      - AI_MODEL=${AI_MODEL:-tngtech/deepseek-r1t2-chimera:free}
       - AI_MAX_TOKENS=${AI_MAX_TOKENS:-16000}
       - AI_ENABLE_REASONING=${AI_ENABLE_REASONING:-true}
       

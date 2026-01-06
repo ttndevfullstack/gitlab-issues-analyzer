@@ -60,7 +60,7 @@ def _get_default_config() -> Dict[str, Any]:
         "ai": {
             "provider": "openrouter",  # Default to OpenRouter for DeepSeek
             "api_key": None,
-            "model": "deepseek/deepseek-v3.2",  # OpenRouter model format
+            "model": "tngtech/deepseek-r1t2-chimera:free",  # OpenRouter model format
             "base_url": None,  # Will be set based on provider
             "temperature": 0.7,
             "max_tokens": 2000,
