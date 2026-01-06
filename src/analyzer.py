@@ -471,7 +471,7 @@ class IssueAnalyzer:
         if labels:
             labels_str = ", ".join(
                 [
-                    label.get("name", label) if isinstance(label, dict) else str(label)
+                    label.get("title", label.get("name", label)) if isinstance(label, dict) else str(label)
                     for label in labels
                 ]
             )
