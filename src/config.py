@@ -89,6 +89,8 @@ def _get_default_config() -> Dict[str, Any]:
             "retry_backoff": 2.0,
             "max_issues_per_poll": None,  # Limit number of issues to process per poll (for testing)
             "enable_automation": True,  # Enable/disable automated polling/webhook processing
+            "timezone": "Asia/Ho_Chi_Minh",  # Default to Vietnam timezone
+            "version": "0.1.0",  # Application version
         },
     }
 
@@ -240,6 +242,12 @@ def _load_from_environment() -> Dict[str, Any]:
             "1",
             "yes",
         )
+    if os.getenv("TIMEZONE"):
+        config.setdefault("app", {})["timezone"] = os.getenv("TIMEZONE")
+    if os.getenv("APP_VERSION") or os.getenv("VERSION"):
+        # Support both APP_VERSION and VERSION for flexibility
+        version_value = os.getenv("APP_VERSION") or os.getenv("VERSION")
+        config.setdefault("app", {})["version"] = version_value
 
     return config
 

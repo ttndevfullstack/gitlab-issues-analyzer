@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Processed Issues - GitLab Issues Analyzer</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg viewBox='0 0 64 64' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3ClinearGradient id='logoGradient' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%23667eea;stop-opacity:1' /%3E%3Cstop offset='100%25' style='stop-color:%23764ba2;stop-opacity:1' /%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='32' cy='32' r='30' fill='url(%23logoGradient)' opacity='0.1'/%3E%3Cpath d='M32 12 L40 28 L24 28 Z' fill='url(%23logoGradient)'/%3E%3Cpath d='M24 28 L32 44 L16 28 Z' fill='url(%23logoGradient)' opacity='0.8'/%3E%3Cpath d='M40 28 L32 44 L48 28 Z' fill='url(%23logoGradient)' opacity='0.8'/%3E%3Cpath d='M20 40 Q24 36 28 40 T36 40' stroke='url(%23logoGradient)' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3Cpath d='M22 46 Q26 42 30 46 T38 46' stroke='url(%23logoGradient)' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3Crect x='44' y='40' width='12' height='14' rx='1' fill='url(%23logoGradient)' opacity='0.6'/%3E%3Cline x1='47' y1='43' x2='53' y2='43' stroke='white' stroke-width='1.5' stroke-linecap='round'/%3E%3Cline x1='47' y1='46' x2='53' y2='46' stroke='white' stroke-width='1.5' stroke-linecap='round'/%3E%3Cline x1='47' y1='49' x2='51' y2='49' stroke='white' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E">
     <style>
         * {
             margin: 0;
@@ -74,6 +75,50 @@
         
         .nav a.active {
             background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        }
+        
+        .version-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            margin-left: 12px;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+            vertical-align: middle;
+        }
+        
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .logo {
+            width: 56px;
+            height: 56px;
+            flex-shrink: 0;
+        }
+        
+        .logo-title {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .logo-title h1 {
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .logo-title p {
+            margin: 0;
         }
         
         .card {
@@ -187,13 +232,91 @@
             font-size: 64px;
             margin-bottom: 20px;
         }
+        
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .btn-danger {
+            background-color: #e74c3c;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background-color: #c0392b;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(231, 76, 60, 0.3);
+        }
+        
+        .btn-clear-all {
+            background-color: #e74c3c;
+            color: white;
+            padding: 10px 20px;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        
+        .btn-clear-all:hover {
+            background-color: #c0392b;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(231, 76, 60, 0.3);
+        }
+        
+        .actions-cell {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .card-header h2 {
+            margin: 0;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>Processed Issues</h1>
-            <p>View all issues that have been analyzed and processed</p>
+            <div class="logo-container">
+                <div class="logo">
+                    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+                        <circle cx="32" cy="32" r="30" fill="url(#logoGradient)" opacity="0.1"/>
+                        <path d="M32 12 L40 28 L24 28 Z" fill="url(#logoGradient)"/>
+                        <path d="M24 28 L32 44 L16 28 Z" fill="url(#logoGradient)" opacity="0.8"/>
+                        <path d="M40 28 L32 44 L48 28 Z" fill="url(#logoGradient)" opacity="0.8"/>
+                        <path d="M20 40 Q24 36 28 40 T36 40" stroke="url(#logoGradient)" stroke-width="2" fill="none" stroke-linecap="round"/>
+                        <path d="M22 46 Q26 42 30 46 T38 46" stroke="url(#logoGradient)" stroke-width="2" fill="none" stroke-linecap="round"/>
+                        <rect x="44" y="40" width="12" height="14" rx="1" fill="url(#logoGradient)" opacity="0.6"/>
+                        <line x1="47" y1="43" x2="53" y2="43" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+                        <line x1="47" y1="46" x2="53" y2="46" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+                        <line x1="47" y1="49" x2="51" y2="49" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <div class="logo-title">
+                    <h1>Processed Issues<span class="version-badge">v{{ version }}</span></h1>
+                    <p>View all issues that have been analyzed and processed</p>
+                </div>
+            </div>
             <nav class="nav">
                 <a href="/dashboard">Dashboard</a>
                 <a href="/issues" class="active">Processed Issues</a>
@@ -201,7 +324,12 @@
         </div>
         
         <div class="card">
-            <h2>Issues List</h2>
+            <div class="card-header">
+                <h2>Issues List</h2>
+                <button class="btn btn-clear-all" id="clearAllBtn" onclick="clearAllIssues()" style="display: none;">
+                    Clear All
+                </button>
+            </div>
             <div id="loading" class="loading">Loading issues...</div>
             <div id="error" class="error" style="display: none;"></div>
             <div id="empty" class="empty" style="display: none;">
@@ -250,6 +378,12 @@
                 empty.style.display = 'none';
                 table.style.display = 'table';
                 
+                // Show/hide clear all button based on whether there are issues
+                const clearAllBtn = document.getElementById('clearAllBtn');
+                if (clearAllBtn) {
+                    clearAllBtn.style.display = data.issues && data.issues.length > 0 ? 'block' : 'none';
+                }
+                
                 tbody.innerHTML = '';
                 data.issues.forEach(issue => {
                     const row = document.createElement('tr');
@@ -265,10 +399,16 @@
                         }).join('')
                         : '<span style="color: #999;">None</span>';
                     
-                    const viewLink = `<a href="/issues/${issue.issue_id}">View</a>`;
+                    // Add error badge if issue has an error
+                    const errorBadge = issue.has_error 
+                        ? `<span class="badge" style="background-color: #e74c3c; color: white; margin-left: 8px;" title="${(issue.error || 'Analysis error').replace(/"/g, '&quot;')}">❌ Error</span>`
+                        : '';
+                    
+                    const viewLink = `<a href="/issues/${issue.issue_id}" class="btn" style="background-color: #667eea; color: white;">View</a>`;
+                    const deleteBtn = `<button class="btn btn-danger" onclick="deleteIssue(${issue.issue_id}, '${(issue.title || 'Untitled').replace(/'/g, "\\'")}')">Delete</button>`;
                     
                     row.innerHTML = `
-                        <td>#${issue.issue_iid || issue.issue_id}</td>
+                        <td>#${issue.issue_iid || issue.issue_id}${errorBadge}</td>
                         <td>
                             ${issue.web_url 
                                 ? `<a href="${issue.web_url}" target="_blank">${issue.title || 'Untitled'}</a>`
@@ -277,7 +417,12 @@
                         <td>${stateBadge}</td>
                         <td>${labelsHtml}</td>
                         <td>${issue.project_id || 'N/A'}</td>
-                        <td>${viewLink}</td>
+                        <td>
+                            <div class="actions-cell">
+                                ${viewLink}
+                                ${deleteBtn}
+                            </div>
+                        </td>
                     `;
                     tbody.appendChild(row);
                 });
@@ -287,6 +432,58 @@
                 error.textContent = `Error loading issues: ${err.message}`;
                 table.style.display = 'none';
                 empty.style.display = 'none';
+            }
+        }
+        
+        async function deleteIssue(issueId, issueTitle) {
+            if (!confirm(`Are you sure you want to delete issue #${issueId} "${issueTitle}"?\n\nThis will remove it from the cache and it will need to be re-analyzed.`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/issues/${issueId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Reload the issues list
+                    loadIssues();
+                } else {
+                    alert(`Error: ${data.error || 'Failed to delete issue'}`);
+                }
+            } catch (err) {
+                alert(`Error deleting issue: ${err.message}`);
+            }
+        }
+        
+        async function clearAllIssues() {
+            if (!confirm('Are you sure you want to clear ALL cached issues?\n\nThis action cannot be undone. All issues will need to be re-analyzed.')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/issues', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Reload the issues list
+                    loadIssues();
+                } else {
+                    alert(`Error: ${data.error || 'Failed to clear all issues'}`);
+                }
+            } catch (err) {
+                alert(`Error clearing all issues: ${err.message}`);
             }
         }
         

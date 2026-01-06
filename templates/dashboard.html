@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GitLab Issues Analyzer - Dashboard</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg viewBox='0 0 64 64' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3ClinearGradient id='logoGradient' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%23667eea;stop-opacity:1' /%3E%3Cstop offset='100%25' style='stop-color:%23764ba2;stop-opacity:1' /%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='32' cy='32' r='30' fill='url(%23logoGradient)' opacity='0.1'/%3E%3Cpath d='M32 12 L40 28 L24 28 Z' fill='url(%23logoGradient)'/%3E%3Cpath d='M24 28 L32 44 L16 28 Z' fill='url(%23logoGradient)' opacity='0.8'/%3E%3Cpath d='M40 28 L32 44 L48 28 Z' fill='url(%23logoGradient)' opacity='0.8'/%3E%3Cpath d='M20 40 Q24 36 28 40 T36 40' stroke='url(%23logoGradient)' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3Cpath d='M22 46 Q26 42 30 46 T38 46' stroke='url(%23logoGradient)' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3Crect x='44' y='40' width='12' height='14' rx='1' fill='url(%23logoGradient)' opacity='0.6'/%3E%3Cline x1='47' y1='43' x2='53' y2='43' stroke='white' stroke-width='1.5' stroke-linecap='round'/%3E%3Cline x1='47' y1='46' x2='53' y2='46' stroke='white' stroke-width='1.5' stroke-linecap='round'/%3E%3Cline x1='47' y1='49' x2='51' y2='49' stroke='white' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E">
     <style>
         * {
             margin: 0;
@@ -127,6 +128,12 @@
             margin-bottom: 10px;
             font-size: 15px;
             letter-spacing: 0.2px;
+        }
+        
+        .form-group label .required-asterisk {
+            color: #e74c3c;
+            font-weight: 700;
+            margin-left: 2px;
         }
         
         .form-group input {
@@ -331,13 +338,85 @@
         .status strong {
             font-weight: 600;
         }
+        
+        .version-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            margin-left: 12px;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+            vertical-align: middle;
+        }
+        
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .logo {
+            width: 56px;
+            height: 56px;
+            flex-shrink: 0;
+        }
+        
+        .logo-title {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .logo-title h1 {
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .logo-title p {
+            margin: 0;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🚀 GitLab Issues Analyzer</h1>
-            <p>Automated AI-powered issue analysis and email reporting</p>
+            <div class="logo-container">
+                <div class="logo">
+                    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+                        <!-- Background circle -->
+                        <circle cx="32" cy="32" r="30" fill="url(#logoGradient)" opacity="0.1"/>
+                        <!-- GitLab icon representation (simplified) -->
+                        <path d="M32 12 L40 28 L24 28 Z" fill="url(#logoGradient)"/>
+                        <path d="M24 28 L32 44 L16 28 Z" fill="url(#logoGradient)" opacity="0.8"/>
+                        <path d="M40 28 L32 44 L48 28 Z" fill="url(#logoGradient)" opacity="0.8"/>
+                        <!-- AI/Analysis symbol (brain/chart lines) -->
+                        <path d="M20 40 Q24 36 28 40 T36 40" stroke="url(#logoGradient)" stroke-width="2" fill="none" stroke-linecap="round"/>
+                        <path d="M22 46 Q26 42 30 46 T38 46" stroke="url(#logoGradient)" stroke-width="2" fill="none" stroke-linecap="round"/>
+                        <!-- Issue/document icon -->
+                        <rect x="44" y="40" width="12" height="14" rx="1" fill="url(#logoGradient)" opacity="0.6"/>
+                        <line x1="47" y1="43" x2="53" y2="43" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+                        <line x1="47" y1="46" x2="53" y2="46" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+                        <line x1="47" y1="49" x2="51" y2="49" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <div class="logo-title">
+                    <h1>GitLab Issues Analyzer<span class="version-badge">v{{ version }}</span></h1>
+                    <p>Automated AI-powered issue analysis and email reporting</p>
+                </div>
+            </div>
             <nav class="nav">
                 <a href="/dashboard" class="active">Dashboard</a>
                 <a href="/issues">Processed Issues</a>
@@ -412,16 +491,22 @@
             <form id="triggerForm">
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="projectId">Project ID *</label>
+                        <label for="projectId">Project ID <span class="required-asterisk">*</span></label>
                         <input type="number" id="projectId" name="projectId" required placeholder="e.g., 31">
                         <span class="help-text">The GitLab project ID where the issue belongs</span>
                     </div>
                     
                     <div class="form-group">
-                        <label for="issueIid">Issue ID (IID) *</label>
+                        <label for="issueIid">Issue ID (IID) <span class="required-asterisk">*</span></label>
                         <input type="number" id="issueIid" name="issueIid" required placeholder="e.g., 366">
                         <span class="help-text">The internal issue ID (IID) shown in GitLab (e.g., #366)</span>
                     </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="toEmail">Recipient Email(s)</label>
+                    <input type="text" id="toEmail" name="toEmail" placeholder="e.g., user1@example.com, user2@example.com">
+                    <span class="help-text">Comma-separated email addresses. If empty, uses default SMTP_TO_EMAIL from configuration.</span>
                 </div>
                 
                 <button type="submit" class="btn" id="submitBtn">
@@ -490,6 +575,7 @@
             
             const projectId = document.getElementById('projectId').value;
             const issueIid = document.getElementById('issueIid').value;
+            const toEmail = document.getElementById('toEmail').value.trim();
             const submitBtn = document.getElementById('submitBtn');
             const loading = document.getElementById('loading');
             const status = document.getElementById('status');
@@ -499,16 +585,39 @@
             loading.classList.add('active');
             status.style.display = 'none';
             
+            // Build request body
+            const requestBody = {
+                project_id: parseInt(projectId),
+                issue_iid: parseInt(issueIid)
+            };
+            
+            // Add to_email if provided
+            if (toEmail) {
+                // Split by comma and trim each email
+                const emails = toEmail.split(',').map(email => email.trim()).filter(email => email);
+                if (emails.length > 0) {
+                    // Basic email validation
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    const invalidEmails = emails.filter(email => !emailRegex.test(email));
+                    if (invalidEmails.length > 0) {
+                        status.className = 'status error';
+                        status.innerHTML = `❌ <strong>Error:</strong> Invalid email format: ${invalidEmails.join(', ')}`;
+                        status.style.display = 'block';
+                        submitBtn.disabled = false;
+                        loading.classList.remove('active');
+                        return;
+                    }
+                    requestBody.to_email = emails.length === 1 ? emails[0] : emails;
+                }
+            }
+            
             try {
                 const response = await fetch('/api/trigger', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({
-                        project_id: parseInt(projectId),
-                        issue_iid: parseInt(issueIid)
-                    })
+                    body: JSON.stringify(requestBody)
                 });
                 
                 const data = await response.json();
@@ -525,12 +634,34 @@
                     document.getElementById('triggerForm').reset();
                 } else {
                     status.className = 'status error';
-                    status.innerHTML = `❌ <strong>Error:</strong> ${data.error || 'Failed to trigger analysis.'}`;
+                    const errorMessage = data.error || 'Failed to trigger analysis.';
+                    status.innerHTML = `
+                        <div style="display: flex; align-items: flex-start; gap: 10px;">
+                            <span style="font-size: 20px;">❌</span>
+                            <div style="flex: 1;">
+                                <strong>Analysis Error:</strong>
+                                <div style="margin-top: 8px; font-family: monospace; font-size: 12px; background: rgba(0,0,0,0.05); padding: 8px; border-radius: 4px; white-space: pre-wrap; word-break: break-word;">
+                                    ${errorMessage}
+                                </div>
+                            </div>
+                        </div>
+                    `;
                     status.style.display = 'block';
                 }
             } catch (error) {
                 status.className = 'status error';
-                status.innerHTML = `❌ <strong>Error:</strong> ${error.message || 'Network error occurred.'}`;
+                const errorMessage = error.message || 'Network error occurred.';
+                status.innerHTML = `
+                    <div style="display: flex; align-items: flex-start; gap: 10px;">
+                        <span style="font-size: 20px;">❌</span>
+                        <div style="flex: 1;">
+                            <strong>Error:</strong>
+                            <div style="margin-top: 8px; font-family: monospace; font-size: 12px; background: rgba(0,0,0,0.05); padding: 8px; border-radius: 4px; white-space: pre-wrap; word-break: break-word;">
+                                ${errorMessage}
+                            </div>
+                        </div>
+                    </div>
+                `;
                 status.style.display = 'block';
             } finally {
                 submitBtn.disabled = false;

@@ -8,7 +8,7 @@ services:
       # Mount source code (read-write for development)
       - ./src:/app/src:rw
       - ./main.py:/app/main.py:rw
-      - ./templates:/app/templates:ro
+      - ./templates:/app/templates:rw
       
       # Mount data directory for persistence (processed issues, etc.)
       - ./data:/app/data:rw
@@ -19,9 +19,10 @@ services:
     # For webhook mode, you may want to use a process manager like supervisor
     # command: ["python3", "-u", "main.py", "--mode", "poll"]
     
-    # Development: Enable more verbose logging
+    # Development: Enable more verbose logging and development environment
     environment:
       - LOG_LEVEL=DEBUG
+      - ENVIRONMENT=development
       
     # Development: Remove restart policy to allow manual control
     restart: "no"

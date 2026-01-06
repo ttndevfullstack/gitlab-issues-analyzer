@@ -89,6 +89,7 @@ class AnalysisCache:
         issue_iid: Optional[int] = None,
         issue_data: Optional[Dict[str, Any]] = None,
         email_report: Optional[Dict[str, str]] = None,
+        error: Optional[str] = None,
     ) -> None:
         """
         Cache analysis result for an issue.
@@ -99,6 +100,7 @@ class AnalysisCache:
             issue_iid: Issue IID (optional, for reference)
             issue_data: Optional issue data for reference (cached for retrieval)
             email_report: Optional email report dictionary with 'subject', 'html', 'text'
+            error: Optional error message if analysis failed
         """
         cache_key = self._get_cache_key(issue_id, issue_iid)
 
@@ -108,6 +110,10 @@ class AnalysisCache:
             "issue_id": issue_id,
             "issue_iid": issue_iid,
         }
+
+        # Store error if provided
+        if error:
+            cache_entry["error"] = error
 
         # Store email report if provided
         if email_report:
@@ -168,6 +174,8 @@ class AnalysisCache:
                     "created_at": issue_data.get("created_at"),
                     "updated_at": issue_data.get("updated_at"),
                     "has_report": "email_report" in cache_entry,
+                    "has_error": "error" in cache_entry,
+                    "error": cache_entry.get("error"),
                 }
             )
         # Sort by issue_id descending (most recent first)
@@ -195,6 +203,7 @@ class AnalysisCache:
                 "issue_data": cached.get("issue_data", {}),
                 "analysis": cached.get("analysis", {}),
                 "email_report": cached.get("email_report", {}),
+                "error": cached.get("error"),
                 "issue_iid": cached.get(
                     "issue_iid"
                 ),  # Include issue_iid from cache entry
@@ -241,11 +250,30 @@ class AnalysisCache:
         """
         return self.metadata.get("system_start_time")
 
+    def delete(self, issue_id: int) -> bool:
+        """
+        Delete a specific issue from cache.
+
+        Args:
+            issue_id: GitLab issue ID to delete
+
+        Returns:
+            True if issue was found and deleted, False otherwise
+        """
+        cache_key = self._get_cache_key(issue_id)
+        if cache_key in self.cache:
+            del self.cache[cache_key]
+            self._save_cache()
+            logger.info(f"Deleted issue {issue_id} from cache")
+            return True
+        return False
+
     def clear(self) -> None:
         """Clear all cached analyses."""
         self.cache.clear()
         self.metadata["count_processed_issues"] = 0
         self._save_cache()
+        logger.info("Cleared all cached issues")
 
     def _load_cache(self) -> None:
         """Load cache from file."""

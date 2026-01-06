@@ -8,11 +8,14 @@ It supports both webhook and polling modes for detecting new GitLab issues.
 
 import argparse
 import logging
+import re
 import signal
 import sys
+from datetime import datetime
 from threading import Event, Thread
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional, Union
 
+import pytz
 from flask import Flask, jsonify, render_template, request
 
 from src.analysis_cache import AnalysisCache
@@ -28,6 +31,11 @@ from src.reporter import generate_email_report
 shutdown_event = Event()
 app = Flask(__name__)
 
+# Disable Werkzeug's default request logging (we'll use our own timezone-aware logging)
+import logging
+werkzeug_logger = logging.getLogger("werkzeug")
+werkzeug_logger.setLevel(logging.WARNING)  # Only show warnings/errors, not every request
+
 # Global components (initialized in main)
 gitlab_client: Optional[GitLabClient] = None
 analyzer: Optional[IssueAnalyzer] = None
@@ -39,21 +47,106 @@ dry_run: bool = False
 logger: Optional[logging.Logger] = None
 
 
-def setup_logging(log_level: str = "INFO") -> logging.Logger:
+def setup_logging(log_level: str = "INFO", timezone: str = "Asia/Ho_Chi_Minh") -> logging.Logger:
     """
-    Set up logging configuration.
+    Set up logging configuration with timezone support.
 
     Args:
         log_level: Logging level (DEBUG, INFO, WARNING, ERROR)
+        timezone: Timezone string (e.g., 'Asia/Ho_Chi_Minh')
 
     Returns:
         Configured logger
     """
-    logging.basicConfig(
-        level=getattr(logging, log_level.upper(), logging.INFO),
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
+    # Create a custom formatter with timezone-aware timestamps
+    class TimezoneFormatter(logging.Formatter):
+        def __init__(self, tz_str):
+            # Set format to include timestamp, logger name, level, and message
+            super().__init__(
+                fmt="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+                datefmt=None
+            )
+            try:
+                self.tz = pytz.timezone(tz_str)
+            except pytz.exceptions.UnknownTimeZoneError:
+                self.tz = pytz.UTC
+
+        def formatTime(self, record, datefmt=None):
+            dt = datetime.fromtimestamp(record.created, tz=self.tz)
+            if datefmt:
+                return dt.strftime(datefmt)
+            # Format without timezone offset (just date and time)
+            return dt.strftime("%Y-%m-%d %H:%M:%S")
+
+    # Validate timezone
+    try:
+        pytz.timezone(timezone)
+    except pytz.exceptions.UnknownTimeZoneError:
+        # Use basic logger for warning (before full setup)
+        basic_logger = logging.getLogger(__name__)
+        basic_logger.warning(f"Unknown timezone: {timezone}, falling back to UTC")
+        timezone = "UTC"
+
+    # Create formatter with timezone
+    formatter = TimezoneFormatter(timezone)
+
+    # Create handler
+    handler = logging.StreamHandler()
+    handler.setFormatter(formatter)
+
+    # Configure root logger
+    root_logger = logging.getLogger()
+    root_logger.setLevel(getattr(logging, log_level.upper(), logging.INFO))
+    root_logger.handlers = [handler]
+    
+    # Also configure Werkzeug (Flask's server) logger to use timezone-aware timestamps
+    # Create a custom formatter for Werkzeug that matches its default format but with timezone
+    class WerkzeugTimezoneFormatter(logging.Formatter):
+        """Formatter for Werkzeug access logs with timezone-aware timestamps."""
+        def __init__(self, tz_str):
+            try:
+                self.tz = pytz.timezone(tz_str)
+            except pytz.exceptions.UnknownTimeZoneError:
+                self.tz = pytz.UTC
+            
+            # Use Werkzeug's default format but with timezone-aware timestamps
+            super().__init__(
+                fmt='%(message)s',
+                datefmt=None
+            )
+        
+        def format(self, record):
+            # Format the timestamp in timezone
+            dt = datetime.fromtimestamp(record.created, tz=self.tz)
+            timestamp = dt.strftime("%d/%b/%Y %H:%M:%S")
+            
+            # Werkzeug access logs format: "IP - - [timestamp] "method path" status"
+            # We need to preserve the original message but replace the timestamp
+            original_msg = record.getMessage()
+            
+            # Try to find and replace timestamp in Werkzeug format [DD/MMM/YYYY HH:MM:SS]
+            # Pattern matches Werkzeug timestamp format: [02/Jan/2026 04:38:13]
+            pattern = r'\[(\d{2}/\w{3}/\d{4} \d{2}:\d{2}:\d{2})\]'
+            if re.search(pattern, original_msg):
+                # Replace with timezone-aware timestamp
+                formatted_msg = re.sub(pattern, f'[{timestamp}]', original_msg)
+                record.msg = formatted_msg
+                record.args = ()
+            
+            return super().format(record)
+    
+    werkzeug_logger = logging.getLogger("werkzeug")
+    werkzeug_logger.setLevel(getattr(logging, log_level.upper(), logging.INFO))
+    # Remove existing handlers to avoid duplicate logs
+    werkzeug_logger.handlers = []
+    # Add our timezone-aware handler with custom formatter
+    werkzeug_handler = logging.StreamHandler()
+    werkzeug_formatter = WerkzeugTimezoneFormatter(timezone)
+    werkzeug_handler.setFormatter(werkzeug_formatter)
+    werkzeug_logger.addHandler(werkzeug_handler)
+    # Prevent propagation to root logger to avoid duplicate logs
+    werkzeug_logger.propagate = False
+
     return logging.getLogger(__name__)
 
 
@@ -126,7 +219,10 @@ def initialize_components(cfg: dict) -> None:
 
 
 def process_issue(
-    issue_iid: int, project_id: Optional[int] = None, skip_cache: bool = False
+    issue_iid: int,
+    project_id: Optional[int] = None,
+    skip_cache: bool = False,
+    to_email: Optional[Union[str, List[str]]] = None,
 ) -> bool:
     """
     Process a single issue: fetch, analyze, and send email.
@@ -135,6 +231,7 @@ def process_issue(
         issue_iid: Internal Issue ID
         project_id: Optional project ID from issue data (required when using global endpoint)
         skip_cache: If True, skip cached analysis and re-analyze the issue
+        to_email: Optional custom recipient email(s). If None, uses default from config.
 
     Returns:
         True if processed successfully, False otherwise
@@ -171,7 +268,21 @@ def process_issue(
             # Analyze issue
             logger.info(f"👉 Analyzing issue #{issue_iid}...")
             gitlab_url = config.get("gitlab", {}).get("url") if config else None
-            analysis = analyzer.analyze_issue(issue_data, gitlab_url=gitlab_url)
+            try:
+                analysis = analyzer.analyze_issue(issue_data, gitlab_url=gitlab_url)
+            except AnalysisError as e:
+                # Store error in cache for UI display
+                error_message = str(e)
+                if issue_id and analysis_cache:
+                    analysis_cache.set(
+                        issue_id,
+                        {},  # Empty analysis
+                        issue_iid,
+                        issue_data,
+                        email_report=None,
+                        error=error_message,
+                    )
+                raise
 
         # Generate email report
         subject_prefix = config["smtp"].get("subject_prefix", "[GitLab Issue Analysis]")
@@ -180,18 +291,19 @@ def process_issue(
         # Cache analysis and email report together (only once, after both are ready)
         if issue_id and analysis_cache:
             analysis_cache.set(
-                issue_id, analysis, issue_iid, issue_data, email_report=report
+                issue_id, analysis, issue_iid, issue_data, email_report=report, error=None
             )
 
         # Send email (non-blocking - mark as processed even if email fails)
-        to_email = config["smtp"]["to_email"]
-        if isinstance(to_email, str):
-            to_email = [to_email]
+        # Use custom to_email if provided, otherwise use default from config
+        email_recipients = to_email if to_email is not None else config["smtp"]["to_email"]
+        if isinstance(email_recipients, str):
+            email_recipients = [email_recipients]
 
         try:
-            logger.info(f"👉 Sending email for issue #{issue_iid} to {to_email}")
+            logger.info(f"👉 Sending email for issue #{issue_iid} to {email_recipients}")
             email_sender.send_email(
-                to=to_email,
+                to=email_recipients,
                 subject=report["subject"],
                 body=report["text"],
                 html_body=report["html"],
@@ -292,7 +404,21 @@ def process_issue_from_data(
             # Analyze issue
             logger.info(f"👉 Analyzing issue #{issue_iid}...")
             gitlab_url = config.get("gitlab", {}).get("url") if config else None
-            analysis = analyzer.analyze_issue(issue_data, gitlab_url=gitlab_url)
+            try:
+                analysis = analyzer.analyze_issue(issue_data, gitlab_url=gitlab_url)
+            except AnalysisError as e:
+                # Store error in cache for UI display
+                error_message = str(e)
+                if issue_id and analysis_cache:
+                    analysis_cache.set(
+                        issue_id,
+                        {},  # Empty analysis
+                        issue_iid,
+                        issue_data,
+                        email_report=None,
+                        error=error_message,
+                    )
+                raise
 
         # Generate email report
         subject_prefix = config["smtp"].get("subject_prefix", "[GitLab Issue Analysis]")
@@ -301,7 +427,7 @@ def process_issue_from_data(
         # Cache analysis and email report together (only once, after both are ready)
         if issue_id and analysis_cache:
             analysis_cache.set(
-                issue_id, analysis, issue_iid, issue_data, email_report=report
+                issue_id, analysis, issue_iid, issue_data, email_report=report, error=None
             )
 
         # Send email (non-blocking - mark as processed even if email fails)
@@ -354,6 +480,7 @@ def run_flask_server(host: str = "0.0.0.0", port: int = 8000) -> None:
     logger.info(f"👉 Starting Flask server (host: {host}, port: {port})")
     try:
         app.run(host=host, port=port, debug=False, use_reloader=False)
+        logger.info(f"✅ Flask server started successfully at http://{host}:{port}/")
     except Exception as e:
         logger.error(f"❌ Error in Flask server: {e}", exc_info=True)
 
@@ -394,7 +521,25 @@ def run_polling_mode(poll_interval: int) -> None:
                 system_start_time = analysis_cache.get_system_start_time()
                 if system_start_time:
                     created_after = system_start_time
-                    logger.debug(f"👉 Filtering issues created after: {created_after}")
+                    # Format timestamp to Vietnam timezone for display
+                    try:
+                        # Parse ISO timestamp (may be UTC with Z)
+                        # Remove Z and parse as UTC
+                        time_str = system_start_time.replace("Z", "+00:00")
+                        dt_utc = datetime.fromisoformat(time_str)
+                        # Convert to configured timezone
+                        timezone_str = config.get("app", {}).get("timezone", "Asia/Ho_Chi_Minh")
+                        tz = pytz.timezone(timezone_str)
+                        # Ensure datetime is timezone-aware (UTC)
+                        if dt_utc.tzinfo is None:
+                            dt_utc = pytz.UTC.localize(dt_utc)
+                        # Convert to target timezone
+                        dt_local = dt_utc.astimezone(tz)
+                        formatted_time = dt_local.strftime("%Y-%m-%d %H:%M:%S")
+                        logger.debug(f"👉 Filtering issues created after: {formatted_time}")
+                    except Exception as e:
+                        # Fallback to original format if parsing fails
+                        logger.debug(f"👉 Filtering issues created after: {created_after}")
 
             new_issues = monitor.poll_issues(
                 state="opened",
@@ -537,7 +682,8 @@ def dashboard():
     Returns:
         Rendered dashboard HTML page
     """
-    return render_template("dashboard.html")
+    app_version = config.get("app", {}).get("version", "0.1.0") if config else "0.1.0"
+    return render_template("dashboard.html", version=app_version)
 
 
 @app.route("/issues", methods=["GET"])
@@ -548,7 +694,8 @@ def issues_list():
     Returns:
         Rendered issues list HTML page
     """
-    return render_template("issues_list.html")
+    app_version = config.get("app", {}).get("version", "0.1.0") if config else "0.1.0"
+    return render_template("issues_list.html", version=app_version)
 
 
 @app.route("/issues/<int:issue_id>", methods=["GET"])
@@ -562,7 +709,8 @@ def issue_view(issue_id: int):
     Returns:
         Rendered issue view HTML page
     """
-    return render_template("issue_view.html", issue_id=issue_id)
+    app_version = config.get("app", {}).get("version", "0.1.0") if config else "0.1.0"
+    return render_template("issue_view.html", issue_id=issue_id, version=app_version)
 
 
 @app.route("/api/stats", methods=["GET"])
@@ -645,7 +793,8 @@ def trigger_analysis():
     Request body:
         {
             "project_id": int,
-            "issue_iid": int
+            "issue_iid": int,
+            "to_email": str or list[str] (optional) - Custom recipient email(s)
         }
 
     Returns:
@@ -657,6 +806,7 @@ def trigger_analysis():
 
         project_id = request.json.get("project_id")
         issue_iid = request.json.get("issue_iid")
+        to_email = request.json.get("to_email")  # Optional custom recipient email(s)
 
         if not project_id or not issue_iid:
             return (
@@ -671,26 +821,79 @@ def trigger_analysis():
         logger.info(
             f"🎯 Manual trigger process issue #{issue_iid} from project {project_id} (skipping cache)"
         )
+        if to_email:
+            logger.info(f"📧 Using custom recipient email(s): {to_email}")
 
         # Process the issue (skip cache for manual triggers to always get fresh analysis)
-        success = process_issue(issue_iid, project_id=project_id, skip_cache=True)
-
-        if success:
-            return (
-                jsonify(
-                    {
-                        "success": True,
-                        "message": f"Issue #{issue_iid} from project {project_id} processed successfully",
-                    }
-                ),
-                200,
+        try:
+            success = process_issue(
+                issue_iid, project_id=project_id, skip_cache=True, to_email=to_email
             )
-        else:
+
+            if success:
+                return (
+                    jsonify(
+                        {
+                            "success": True,
+                            "message": f"Issue #{issue_iid} from project {project_id} processed successfully",
+                        }
+                    ),
+                    200,
+                )
+            else:
+                # Check if there's an error stored in cache for this issue
+                error_message = None
+                if analysis_cache:
+                    # Try to get the issue from cache to see if there's an error
+                    issue_data = None
+                    try:
+                        # Fetch issue data to get issue_id
+                        issue_data = gitlab_client.fetch_comprehensive_issue_data(
+                            issue_iid, project_id=project_id
+                        )
+                        issue_id = issue_data.get("id") if issue_data else None
+                        if issue_id:
+                            cached_data = analysis_cache.get_issue_with_report(issue_id, issue_iid)
+                            if cached_data and cached_data.get("error"):
+                                error_message = cached_data.get("error")
+                    except Exception:
+                        pass  # Ignore errors when fetching issue data for error retrieval
+                
+                return (
+                    jsonify(
+                        {
+                            "success": False,
+                            "error": error_message or f"Failed to process issue #{issue_iid} from project {project_id}",
+                        }
+                    ),
+                    500,
+                )
+        except AnalysisError as e:
+            # AnalysisError was raised, store it and return the error message
+            error_message = str(e)
+            # Try to store error in cache if we have issue data
+            try:
+                issue_data = gitlab_client.fetch_comprehensive_issue_data(
+                    issue_iid, project_id=project_id
+                )
+                issue_id = issue_data.get("id") if issue_data else None
+                if issue_id and analysis_cache:
+                    analysis_cache.set(
+                        issue_id,
+                        {},  # Empty analysis
+                        issue_iid,
+                        issue_data,
+                        email_report=None,
+                        error=error_message,
+                    )
+            except Exception:
+                pass  # Ignore errors when storing error in cache
+            
             return (
                 jsonify(
                     {
                         "success": False,
-                        "error": f"Failed to process issue #{issue_iid} from project {project_id}",
+                        "error": error_message,
                     }
                 ),
                 500,
@@ -745,6 +948,68 @@ def get_issue_details(issue_id: int):
         return jsonify(cached_data), 200
     except Exception as e:
         logger.error(f"❌ Error getting issue details: {e}", exc_info=True)
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@app.route("/api/issues/<int:issue_id>", methods=["DELETE"])
+def delete_issue(issue_id: int):
+    """
+    Delete a specific issue from cache.
+
+    Args:
+        issue_id: GitLab issue ID
+
+    Returns:
+        JSON response with result
+    """
+    try:
+        if not analysis_cache:
+            return jsonify({"error": "Analysis cache not initialized"}), 503
+
+        deleted = analysis_cache.delete(issue_id)
+        if deleted:
+            logger.info(f"✅ Deleted issue {issue_id} from cache")
+            return (
+                jsonify(
+                    {
+                        "success": True,
+                        "message": f"Issue {issue_id} deleted successfully",
+                    }
+                ),
+                200,
+            )
+        else:
+            return jsonify({"error": f"Issue {issue_id} not found in cache"}), 404
+    except Exception as e:
+        logger.error(f"❌ Error deleting issue: {e}", exc_info=True)
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@app.route("/api/issues", methods=["DELETE"])
+def clear_all_issues():
+    """
+    Clear all cached issues.
+
+    Returns:
+        JSON response with result
+    """
+    try:
+        if not analysis_cache:
+            return jsonify({"error": "Analysis cache not initialized"}), 503
+
+        analysis_cache.clear()
+        logger.info("✅ Cleared all cached issues")
+        return (
+            jsonify(
+                {
+                    "success": True,
+                    "message": "All cached issues cleared successfully",
+                }
+            ),
+            200,
+        )
+    except Exception as e:
+        logger.error(f"❌ Error clearing all issues: {e}", exc_info=True)
         return jsonify({"error": "Internal server error"}), 500
 
 
@@ -1030,12 +1295,13 @@ def health_check():
     Returns:
         JSON response with health status
     """
+    app_version = config.get("app", {}).get("version", "0.1.0") if config else "0.1.0"
     return (
         jsonify(
             {
                 "status": "healthy",
                 "service": "GitLab Issues Analyzer",
-                "version": "0.1.0",
+                "version": app_version,
             }
         ),
         200,
@@ -1050,11 +1316,17 @@ def run_webhook_mode(host: str, port: int) -> None:
         host: Host to bind to
         port: Port to bind to
     """
+    # Enable debug mode and reloader in development environment
+    is_development = config.get("app", {}).get("environment", "production") == "development"
+    debug_mode = is_development
+    use_reloader = is_development
+    
     logger.info(f"✅ Website available at http://{host}:{port}/")
+    logger.info(f"🔄 Auto-reload: {'enabled' if use_reloader else 'disabled'} (environment: {config.get('app', {}).get('environment', 'production')})")
     logger.info("Press Ctrl+C to stop the server.")
 
     try:
-        app.run(host=host, port=port, debug=False)
+        app.run(host=host, port=port, debug=debug_mode, use_reloader=use_reloader)
     except Exception as e:
         logger.error(f"❌ Error in webhook server: {e}", exc_info=True)
         raise
@@ -1119,16 +1391,22 @@ def main() -> int:
     args = parse_arguments()
     dry_run = args.dry_run
 
-    # Set up logging
-    logger = setup_logging("INFO")
+    # Load configuration first to get timezone
+    config = load_config()
+    validate_config(config)
+    
+    # Get timezone from config
+    timezone = config.get("app", {}).get("timezone", "Asia/Ho_Chi_Minh")
+    
+    # Set up logging with timezone
+    logger = setup_logging("INFO", timezone)
 
     # System boot message
     logger.info("🚀 Booting the system - GitLab Issues Analyzer v0.1.0")
+    logger.info(f"🌏 Timezone: {timezone}")
 
     # Load and validate configuration (from environment variables only)
     logger.info("👉 Loading configuration from environment...")
-    config = load_config()
-    validate_config(config)
 
     # System information
     logger.info(f"⚙️ _Environment: {config['app'].get('environment', 'production')}")
@@ -1152,8 +1430,10 @@ def main() -> int:
     try:
         # Update log level from config
         log_level = config["app"].get("log_level", "INFO")
-        logger.setLevel(getattr(logging, log_level.upper(), logging.INFO))
-        logging.getLogger().setLevel(getattr(logging, log_level.upper(), logging.INFO))
+        timezone = config["app"].get("timezone", "Asia/Ho_Chi_Minh")
+        # Re-setup logging with correct timezone and log level
+        logger = setup_logging(log_level, timezone)
+        logger.info(f"🌏 Logging timezone: {timezone}")
 
         # Initialize components
         logger.info("👉 Initializing components...")
@@ -1172,9 +1452,15 @@ def main() -> int:
             # Start Flask server only (no polling/webhook automation)
             flask_host = config["app"].get("webhook_host", "0.0.0.0")
             flask_port = config["app"].get("webhook_port", 8000)
+            # Enable debug mode and reloader in development environment
+            is_development = config.get("app", {}).get("environment", "production") == "development"
+            debug_mode = is_development
+            use_reloader = is_development
+            
             logger.info(f"✅ Website available at http://{flask_host}:{flask_port}/")
+            logger.info(f"🔄 Auto-reload: {'enabled' if use_reloader else 'disabled'} (environment: {config.get('app', {}).get('environment', 'production')})")
             # Run Flask server in main thread (blocking)
-            app.run(host=flask_host, port=flask_port, debug=False)
+            app.run(host=flask_host, port=flask_port, debug=debug_mode, use_reloader=use_reloader)
         else:
             # Run in selected mode (automation enabled)
             if args.mode == "poll":

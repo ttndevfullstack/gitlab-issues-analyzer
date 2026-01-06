@@ -9,6 +9,9 @@ flask>=2.3.0
 # Environment variable management
 python-dotenv>=1.0.0
 
+# Timezone support
+pytz>=2023.3
+
 # Email handling (built-in, but listed for clarity)
 # email and smtplib are part of Python standard library
 

@@ -15,22 +15,33 @@ FIXED_HTML_TEMPLATE = """<div class="rcmBody" id="message-htmlpart1" style="marg
                 <table style="width: 100%; max-width: 800px; margin: 0 auto; background-color: #ffffff;">
                     <tbody><tr>
                         <td>
-                            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="font-family: Arial, sans-serif; color: #333; max-width: 700px; margin: auto">
+                            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="font-family: Arial, sans-serif; color: #333; max-width: 1200px; margin: auto">
     <tbody><tr>
         <td>
 
             <table width="100%" cellpadding="15" cellspacing="0" border="0" style="background-color: #f0f7ff; border-radius: 10px; margin-bottom: 20px; border-left: 5px solid #4a90e2">
                 <tbody><tr>
                     <td>
-                        <div style="font-size: 18px; font-weight: bold; color: #2c3e50">{ISSUE_TITLE}</div>
-                        <div style="margin-top: 8px; font-size: 14px">
-                            <strong>Status:</strong> {ISSUE_STATE} &nbsp;|&nbsp; <strong>Priority:</strong> {ISSUE_PRIORITY} &nbsp;|&nbsp; <strong>Lable:</strong> {ISSUE_LABELS}
+                        <div style="font-size: 18px; font-weight: bold; color: #2c3e50; margin-bottom: 12px">{ISSUE_TITLE}</div>
+                        <div style="margin-top: 12px; font-size: 14px; line-height: 1.8">
+                            <div style="margin-bottom: 8px">
+                                <span style="font-weight: 600; color: #555; margin-right: 8px">Status:</span>
+                                <span style="display: inline-block; background-color: #4a90e2; color: #ffffff; padding: 4px 12px; border-radius: 16px; font-size: 12px;">{ISSUE_STATE}</span>
+                            </div>
+                            <div style="margin-bottom: 8px">
+                                <span style="font-weight: 600; color: #555; margin-right: 8px">Priority:</span>
+                                <span style="display: inline-block; background-color: #f39c12; color: #ffffff; padding: 4px 12px; border-radius: 16px; font-size: 12px;">{ISSUE_PRIORITY}</span>
+                            </div>
+                            <div style="margin-bottom: 8px">
+                                <span style="font-weight: 600; color: #555; margin-right: 8px">Labels:</span>
+                                {ISSUE_LABELS}
+                            </div>
+                        </div>
+                        <div style="margin-top: 12px; font-size: 14px; padding-top: 12px; border-top: 1px solid #d0e0f0">
+                            <strong style="color: #555">Creator:</strong> <span style="color: #333">{ISSUE_AUTHOR}</span> &nbsp;|&nbsp; <strong style="color: #555">Assignee:</strong> <span style="color: #333">{ISSUE_ASSIGNEE}</span>
                         </div>
                         <div style="margin-top: 8px; font-size: 14px">
-                            <strong>Creator:</strong> {ISSUE_AUTHOR} &nbsp;|&nbsp; <strong>Assignee:</strong> {ISSUE_ASSIGNEE}
-                        </div>
-                        <div style="margin-top: 8px; font-size: 14px">
-                            <strong>URL:</strong> <a href="{ISSUE_URL}" style="color: #4a90e2; text-decoration: none" target="_blank" rel="noreferrer">{ISSUE_URL}</a>
+                            <strong style="color: #555">URL:</strong> <a href="{ISSUE_URL}" style="color: #4a90e2; text-decoration: none" target="_blank" rel="noreferrer">{ISSUE_URL}</a>
                         </div>
                     </td>
                 </tr>
@@ -179,16 +190,23 @@ def get_fixed_html_template(issue_data: Dict[str, Any]) -> str:
     if isinstance(priority, dict):
         priority = priority.get("name", "not set")
 
-    # Format labels
+    # Format labels as rounded badges
     labels = issue_data.get("labels", [])
-    labels_list = []
+    labels_html = ""
     if labels:
+        labels_badges = []
         for label in labels:
             label_name = (
                 label.get("name", label) if isinstance(label, dict) else str(label)
             )
-            labels_list.append(label_name)
-    labels_str = ", ".join(labels_list) if labels_list else "None"
+            # Create rounded badge for each label
+            label_escaped = html.escape(str(label_name))
+            labels_badges.append(
+                f'<span style="display: inline-block; background-color: #9b59b6; color: #ffffff; padding: 4px 12px; border-radius: 16px; font-size: 12px; margin-right: 6px; margin-bottom: 4px">{label_escaped}</span>'
+            )
+        labels_html = "".join(labels_badges)
+    else:
+        labels_html = '<span style="display: inline-block; background-color: #95a5a6; color: #ffffff; padding: 4px 12px; border-radius: 16px; font-size: 12px; font-style: italic">None</span>'
 
     # Format assignee
     assignee = issue_data.get("assignee")
@@ -212,7 +230,7 @@ def get_fixed_html_template(issue_data: Dict[str, Any]) -> str:
     template = FIXED_HTML_TEMPLATE.replace("{ISSUE_TITLE}", html.escape(title))
     template = template.replace("{ISSUE_STATE}", html.escape(str(state)))
     template = template.replace("{ISSUE_PRIORITY}", html.escape(str(priority)))
-    template = template.replace("{ISSUE_LABELS}", html.escape(labels_str))
+    template = template.replace("{ISSUE_LABELS}", labels_html)  # Already HTML formatted
     template = template.replace("{ISSUE_URL}", html.escape(url))
     template = template.replace("{ISSUE_AUTHOR}", html.escape(author_str))
     template = template.replace("{ISSUE_ASSIGNEE}", html.escape(assignee_str))
@@ -293,7 +311,7 @@ def format_html_email(issue_data: Dict[str, Any], analysis: Dict[str, str]) -> s
                 label.get("name", label) if isinstance(label, dict) else str(label)
             )
             labels_list.append(
-                f'<span style="background-color: #e0e0e0; padding: 2px 6px; border-radius: 3px; margin-right: 4px;">{label_name}</span>'
+                f'<span style="background-color: #e0e0e0; padding: 2px 6px; border-radius: 16px; margin-right: 4px;">{label_name}</span>'
             )
         labels_html = "".join(labels_list)
 
