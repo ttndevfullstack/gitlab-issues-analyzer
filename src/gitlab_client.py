@@ -5,6 +5,7 @@ This module provides a client for interacting with GitLab API v4 to fetch
 issues, comments, related issues, and attachments.
 """
 
+import logging
 import re
 import time
 from typing import Any, Dict, List, Optional
@@ -13,6 +14,8 @@ import requests
 from requests.exceptions import HTTPError, RequestException, Timeout
 
 from src.exceptions import GitLabAPIError
+
+logger = logging.getLogger(__name__)
 
 
 class GitLabClient:
@@ -197,7 +200,16 @@ class GitLabClient:
         response = self._make_request(
             "GET", "/issues", params=params, use_project_endpoint=use_project_endpoint
         )
-        return response.json()
+        issues = response.json()
+        
+        # Log fetched issue IDs
+        if issues:
+            issue_ids = [f"#{issue.get('iid', '?')} (PID: {issue.get('project_id', '?')})" for issue in issues]
+            logger.info(f"📋 Fetched {len(issues)} issue(s): {', '.join(issue_ids)}")
+        else:
+            logger.info("📋 Fetched 0 issues")
+        
+        return issues
 
     def get_issue(
         self, issue_iid: int, project_id: Optional[int] = None

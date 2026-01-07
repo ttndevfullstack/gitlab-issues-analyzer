@@ -85,6 +85,14 @@ class IssueMonitor:
                     if self.should_process_issue(issue):
                         new_issues.append(issue)
 
+            # Log new issues to process
+            if new_issues:
+                new_issue_ids = [f"#{issue.get('iid', '?')} (PID: {issue.get('project_id', '?')})" for issue in new_issues]
+                logger.info(f"✅ Found {len(new_issues)} new issue(s) to process: {', '.join(new_issue_ids)}")
+            elif all_issues:
+                processed_issue_ids = [f"#{issue.get('iid', '?')} (PID: {issue.get('project_id', '?')})" for issue in all_issues]
+                logger.debug(f"ℹ️ All {len(all_issues)} fetched issue(s) already processed: {', '.join(processed_issue_ids)}")
+
             return new_issues
 
         except GitLabAPIError as e:
