@@ -91,6 +91,7 @@ def _get_default_config() -> Dict[str, Any]:
             "enable_automation": True,  # Enable/disable automated polling/webhook processing
             "timezone": "Asia/Ho_Chi_Minh",  # Default to Vietnam timezone
             "version": "0.1.0",  # Application version
+            "issue_start_time": None,  # ISO 8601 timestamp - issues created after this time will be processed
         },
     }
 
@@ -244,6 +245,8 @@ def _load_from_environment() -> Dict[str, Any]:
         )
     if os.getenv("TIMEZONE"):
         config.setdefault("app", {})["timezone"] = os.getenv("TIMEZONE")
+    if os.getenv("ISSUE_START_TIME"):
+        config.setdefault("app", {})["issue_start_time"] = os.getenv("ISSUE_START_TIME")
     if os.getenv("APP_VERSION") or os.getenv("VERSION"):
         # Support both APP_VERSION and VERSION for flexibility
         version_value = os.getenv("APP_VERSION") or os.getenv("VERSION")

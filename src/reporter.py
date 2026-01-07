@@ -197,7 +197,7 @@ def get_fixed_html_template(issue_data: Dict[str, Any]) -> str:
         labels_badges = []
         for label in labels:
             label_name = (
-                label.get("title", label.get("name", label)) if isinstance(label, dict) else str(label)
+                label.get("name", label) if isinstance(label, dict) else str(label)
             )
             # Create rounded badge for each label
             label_escaped = html.escape(str(label_name))
@@ -308,7 +308,7 @@ def format_html_email(issue_data: Dict[str, Any], analysis: Dict[str, str]) -> s
         labels_list = []
         for label in labels:
             label_name = (
-                label.get("title", label.get("name", label)) if isinstance(label, dict) else str(label)
+                label.get("name", label) if isinstance(label, dict) else str(label)
             )
             labels_list.append(
                 f'<span style="background-color: #e0e0e0; padding: 2px 6px; border-radius: 16px; margin-right: 4px;">{label_name}</span>'
@@ -437,7 +437,7 @@ def format_text_email(issue_data: Dict[str, Any], analysis: Dict[str, str]) -> s
     labels_str = "None"
     if labels:
         labels_list = [
-            label.get("title", label.get("name", label)) if isinstance(label, dict) else str(label)
+            label.get("name", label) if isinstance(label, dict) else str(label)
             for label in labels
         ]
         labels_str = ", ".join(labels_list)

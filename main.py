@@ -239,32 +239,43 @@ def process_issue(
     try:
         logger.info(f"👉 Processing issue #{issue_iid}")
 
-        # Fetch comprehensive issue data
         if dry_run:
             return True
 
-        logger.info(f"👉 Fetching data for issue #{issue_iid}")
-        issue_data = gitlab_client.fetch_comprehensive_issue_data(
-            issue_iid, project_id=project_id
-        )
-        logger.info(f"✅ Fetched data for issue #{issue_iid} successfully")
+        # Fetch basic issue data first to get issue_id for cache check
+        # Use get_issue (lighter) instead of fetch_comprehensive_issue_data
+        logger.info(f"👉 Fetching basic data for issue #{issue_iid}")
+        basic_issue_data = gitlab_client.get_issue(issue_iid, project_id=project_id)
+        issue_id = basic_issue_data.get("id")
+        logger.info(f"✅ Fetched basic data for issue #{issue_iid} successfully")
 
-        # Check cache first (unless skip_cache is True)
-        issue_id = issue_data.get("id")
-        cached_analysis = None
+        # Check cache first (unless skip_cache is True) - avoid comprehensive fetch if cached
+        cached_data = None
         if not skip_cache and issue_id and analysis_cache:
-            cached_analysis = analysis_cache.get(issue_id, issue_iid)
+            cached_data = analysis_cache.get_issue_with_report(issue_id, issue_iid)
 
-        if cached_analysis:
+        if cached_data:
             logger.info(
-                f"Using cached analysis for issue #{issue_iid} (ID: {issue_id})"
+                f"👉 Using cached analysis for issue #{issue_iid} (ID: {issue_id})"
             )
-            analysis = cached_analysis
+            analysis = cached_data.get("analysis", {})
+            report = cached_data.get("email_report", {})
+            # Use cached issue_data merged with basic data
+            issue_data = {**basic_issue_data, **cached_data.get("issue_data", {})}
         else:
             if skip_cache:
                 logger.info(
                     f"👉 Skipping cache and re-analyzing issue #{issue_iid} (ID: {issue_id})"
                 )
+            # Fetch comprehensive issue data (comments, attachments, etc.) for analysis
+            logger.info(f"👉 Fetching comprehensive data for issue #{issue_iid}")
+            comprehensive_data = gitlab_client.fetch_comprehensive_issue_data(
+                issue_iid, project_id=project_id
+            )
+            # Merge with basic data
+            issue_data = {**basic_issue_data, **comprehensive_data}
+            logger.info(f"✅ Fetched comprehensive data for issue #{issue_iid} successfully")
+            
             # Analyze issue
             logger.info(f"👉 Analyzing issue #{issue_iid}...")
             gitlab_url = config.get("gitlab", {}).get("url") if config else None
@@ -284,15 +295,15 @@ def process_issue(
                     )
                 raise
 
-        # Generate email report
-        subject_prefix = config["smtp"].get("subject_prefix", "[GitLab Issue Analysis]")
-        report = generate_email_report(issue_data, analysis, subject_prefix)
+            # Generate email report
+            subject_prefix = config["smtp"].get("subject_prefix", "[GitLab Issue Analysis]")
+            report = generate_email_report(issue_data, analysis, subject_prefix)
 
-        # Cache analysis and email report together (only once, after both are ready)
-        if issue_id and analysis_cache:
-            analysis_cache.set(
-                issue_id, analysis, issue_iid, issue_data, email_report=report, error=None
-            )
+            # Cache analysis and email report together (only once, after both are ready)
+            if issue_id and analysis_cache:
+                analysis_cache.set(
+                    issue_id, analysis, issue_iid, issue_data, email_report=report, error=None
+                )
 
         # Send email (non-blocking - mark as processed even if email fails)
         # Use custom to_email if provided, otherwise use default from config
@@ -371,36 +382,37 @@ def process_issue_from_data(
     try:
         logger.info(f"👉 Processing issue #{issue_iid} from project {project_id}")
 
-        # Fetch comprehensive issue data (comments, attachments, etc.)
         if dry_run:
             return True
 
-        logger.info(f"👉 Fetching data for issue #{issue_iid}")
-        # Use the issue data we already have, only fetch additional details
-        issue_data = gitlab_client.fetch_comprehensive_issue_data(
-            issue_iid, project_id=project_id
-        )
-
-        # Merge with the original issue data to ensure we have all fields
-        issue_data = {**issue, **issue_data}
-        logger.info(f"✅ Fetched data for issue #{issue_iid} successfully")
-
-        # Check cache first (unless skip_cache is True)
-        issue_id = issue_data.get("id")
-        cached_analysis = None
+        # Check cache first (unless skip_cache is True) - we already have issue data with id
+        issue_id = issue.get("id")
+        cached_data = None
         if not skip_cache and issue_id and analysis_cache:
-            cached_analysis = analysis_cache.get(issue_id, issue_iid)
+            cached_data = analysis_cache.get_issue_with_report(issue_id, issue_iid)
 
-        if cached_analysis:
+        if cached_data:
             logger.info(
-                f"Using cached analysis for issue #{issue_iid} (ID: {issue_id})"
+                f"👉 Using cached analysis for issue #{issue_iid} (ID: {issue_id})"
             )
-            analysis = cached_analysis
+            analysis = cached_data.get("analysis", {})
+            report = cached_data.get("email_report", {})
+            # Use cached issue_data merged with original issue data
+            issue_data = {**issue, **cached_data.get("issue_data", {})}
         else:
             if skip_cache:
                 logger.info(
                     f"👉 Skipping cache and re-analyzing issue #{issue_iid} (ID: {issue_id})"
                 )
+            # Fetch comprehensive issue data (comments, attachments, etc.) for analysis
+            logger.info(f"👉 Fetching comprehensive data for issue #{issue_iid}")
+            comprehensive_data = gitlab_client.fetch_comprehensive_issue_data(
+                issue_iid, project_id=project_id
+            )
+            # Merge with the original issue data to ensure we have all fields
+            issue_data = {**issue, **comprehensive_data}
+            logger.info(f"✅ Fetched comprehensive data for issue #{issue_iid} successfully")
+            
             # Analyze issue
             logger.info(f"👉 Analyzing issue #{issue_iid}...")
             gitlab_url = config.get("gitlab", {}).get("url") if config else None
@@ -420,15 +432,15 @@ def process_issue_from_data(
                     )
                 raise
 
-        # Generate email report
-        subject_prefix = config["smtp"].get("subject_prefix", "[GitLab Issue Analysis]")
-        report = generate_email_report(issue_data, analysis, subject_prefix)
+            # Generate email report
+            subject_prefix = config["smtp"].get("subject_prefix", "[GitLab Issue Analysis]")
+            report = generate_email_report(issue_data, analysis, subject_prefix)
 
-        # Cache analysis and email report together (only once, after both are ready)
-        if issue_id and analysis_cache:
-            analysis_cache.set(
-                issue_id, analysis, issue_iid, issue_data, email_report=report, error=None
-            )
+            # Cache analysis and email report together (only once, after both are ready)
+            if issue_id and analysis_cache:
+                analysis_cache.set(
+                    issue_id, analysis, issue_iid, issue_data, email_report=report, error=None
+                )
 
         # Send email (non-blocking - mark as processed even if email fails)
         to_email = config["smtp"]["to_email"]
@@ -514,32 +526,58 @@ def run_polling_mode(poll_interval: int) -> None:
             scope = issue_filter.get("scope")  # e.g., "all"
             labels = issue_filter.get("labels")  # e.g., ["UNIOSS 3"]
 
-            # Get system start time to filter out old issues
-            # Only process issues created after the system started
+            # Get start time to filter out old issues
+            # Priority: 1. ISSUE_START_TIME env var, 2. system_start_time from cache
             created_after = None
-            if analysis_cache:
+            issue_start_time = config.get("app", {}).get("issue_start_time")
+            
+            if issue_start_time:
+                # Normalize timestamp to ISO 8601 format for GitLab API
+                try:
+                    # Replace space with T for ISO 8601 compatibility (e.g., "2026-01-05 00:00:00" -> "2026-01-05T00:00:00")
+                    normalized_time = issue_start_time.strip().replace(" ", "T", 1)
+                    # If no timezone specified (no Z, no +/-, or doesn't end with timezone offset), assume UTC
+                    has_timezone = (
+                        normalized_time.endswith("Z") or
+                        (len(normalized_time) >= 6 and normalized_time[-6] in "+-" and ":" in normalized_time[-5:])
+                    )
+                    if not has_timezone:
+                        normalized_time += "Z"
+                    created_after = normalized_time
+                    if created_after != issue_start_time:
+                        logger.info(f"📅 Using ISSUE_START_TIME from environment: {issue_start_time} (normalized to: {created_after})")
+                    else:
+                        logger.info(f"📅 Using ISSUE_START_TIME from environment: {created_after}")
+                except Exception as e:
+                    # If normalization fails, use as-is (might fail later, but let GitLab API handle it)
+                    created_after = issue_start_time
+                    logger.warning(f"⚠️ Could not normalize ISSUE_START_TIME format, using as-is: {issue_start_time}")
+            elif analysis_cache:
+                # Fall back to system start time from cache
                 system_start_time = analysis_cache.get_system_start_time()
                 if system_start_time:
                     created_after = system_start_time
-                    # Format timestamp to Vietnam timezone for display
-                    try:
-                        # Parse ISO timestamp (may be UTC with Z)
-                        # Remove Z and parse as UTC
-                        time_str = system_start_time.replace("Z", "+00:00")
-                        dt_utc = datetime.fromisoformat(time_str)
-                        # Convert to configured timezone
-                        timezone_str = config.get("app", {}).get("timezone", "Asia/Ho_Chi_Minh")
-                        tz = pytz.timezone(timezone_str)
-                        # Ensure datetime is timezone-aware (UTC)
-                        if dt_utc.tzinfo is None:
-                            dt_utc = pytz.UTC.localize(dt_utc)
-                        # Convert to target timezone
-                        dt_local = dt_utc.astimezone(tz)
-                        formatted_time = dt_local.strftime("%Y-%m-%d %H:%M:%S")
-                        logger.debug(f"👉 Filtering issues created after: {formatted_time}")
-                    except Exception as e:
-                        # Fallback to original format if parsing fails
-                        logger.debug(f"👉 Filtering issues created after: {created_after}")
+            
+            # Format timestamp to Vietnam timezone for display
+            if created_after:
+                try:
+                    # Parse ISO timestamp (may be UTC with Z)
+                    # Remove Z and parse as UTC
+                    time_str = created_after.replace("Z", "+00:00")
+                    dt_utc = datetime.fromisoformat(time_str)
+                    # Convert to configured timezone
+                    timezone_str = config.get("app", {}).get("timezone", "Asia/Ho_Chi_Minh")
+                    tz = pytz.timezone(timezone_str)
+                    # Ensure datetime is timezone-aware (UTC)
+                    if dt_utc.tzinfo is None:
+                        dt_utc = pytz.UTC.localize(dt_utc)
+                    # Convert to target timezone
+                    dt_local = dt_utc.astimezone(tz)
+                    formatted_time = dt_local.strftime("%Y-%m-%d %H:%M:%S")
+                    logger.debug(f"👉 Filtering issues created after: {formatted_time}")
+                except Exception as e:
+                    # Fallback to original format if parsing fails
+                    logger.debug(f"👉 Filtering issues created after: {created_after}")
 
             new_issues = monitor.poll_issues(
                 state="opened",
@@ -549,10 +587,40 @@ def run_polling_mode(poll_interval: int) -> None:
             )
 
             if new_issues:
+                # Filter out issues that are already cached in analysis_cache
+                issues_to_analyze = []
+                cached_issues = []
+                
+                for issue in new_issues:
+                    issue_id = issue.get("id")
+                    issue_iid = issue.get("iid")
+                    
+                    # Check if issue is already cached (analyzed)
+                    if issue_id and analysis_cache:
+                        cached_data = analysis_cache.get_issue_with_report(issue_id, issue_iid)
+                        if cached_data:
+                            cached_issues.append(issue)
+                            continue
+                    
+                    issues_to_analyze.append(issue)
+                
                 # Apply max_issues_per_poll limit (for testing mode)
                 max_issues = config["app"].get("max_issues_per_poll")
+                original_count = len(issues_to_analyze)
                 if max_issues is not None and max_issues > 0:
-                    new_issues = new_issues[:max_issues]
+                    issues_to_analyze = issues_to_analyze[:max_issues]
+                    if len(issues_to_analyze) < original_count:
+                        logger.info(f"📊 Limited to {len(issues_to_analyze)} issue(s) due to MAX_ISSUES_PER_POLL={max_issues}")
+
+                # Log new issues found (not cached)
+                if issues_to_analyze:
+                    issue_list = [f"#{issue.get('iid', '?')} (PID: {issue.get('project_id', '?')})" for issue in issues_to_analyze]
+                    logger.info(f"✅ Found {len(issues_to_analyze)} new issue(s): {', '.join(issue_list)}")
+                else:
+                    logger.info("👉 Not found new issue")
+                
+                # Update new_issues to only include issues to analyze
+                new_issues = issues_to_analyze
 
                 processed_count = 0
                 for issue in new_issues:
@@ -578,7 +646,7 @@ def run_polling_mode(poll_interval: int) -> None:
                     else:
                         logger.warning(f"⚠️ Skipping issue without IID: {issue}")
             else:
-                logger.info("👉 No new issues found")
+                logger.info("📧 Not found new issue")
 
             # Wait for next poll (with interruptible sleep)
             if not shutdown_event.wait(poll_interval):

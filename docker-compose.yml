@@ -42,6 +42,7 @@ services:
       - MAX_ISSUES_PER_POLL=${MAX_ISSUES_PER_POLL:-}
       - TIMEZONE=${TIMEZONE:-Asia/Ho_Chi_Minh}
       - APP_VERSION=${APP_VERSION:-0.1.0}
+      - ISSUE_START_TIME=${ISSUE_START_TIME:-}
     env_file:
       - .env
     healthcheck:

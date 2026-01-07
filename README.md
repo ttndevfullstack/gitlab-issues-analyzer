@@ -72,6 +72,7 @@ When a new GitLab issue is created, the system:
    POLL_INTERVAL=900
    LOG_LEVEL=INFO
    # MAX_ISSUES_PER_POLL=1
+   # ISSUE_START_TIME=2026-01-01T00:00:00Z  # ISO 8601 timestamp - only process issues created after this time
    ```
 
    **Environment Modes:**
@@ -90,6 +91,17 @@ When a new GitLab issue is created, the system:
    - Set `MAX_ISSUES_PER_POLL=1` to process only 1 issue per polling cycle
    - Useful for testing without processing all issues at once
    - Remove or set to empty to process all issues
+
+   **Issue Start Time (for local development):**
+
+   - Set `ISSUE_START_TIME` to a timestamp (ISO 8601 format recommended)
+   - Supported formats:
+     - `2026-01-05T00:00:00Z` (ISO 8601 with UTC - recommended)
+     - `2026-01-05 00:00:00` (space-separated, will be normalized to ISO 8601 and assumed UTC)
+     - `2026-01-05T00:00:00+07:00` (with timezone offset)
+   - Only issues created after this time will be processed automatically
+   - Useful when restarting the application locally to avoid missing issues created between restarts
+   - If not set, the system uses the cache's system start time (first run time)
 
 3. **Run:**
 

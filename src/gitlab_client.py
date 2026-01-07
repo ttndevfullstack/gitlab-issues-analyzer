@@ -205,9 +205,9 @@ class GitLabClient:
         # Log fetched issue IDs
         if issues:
             issue_ids = [f"#{issue.get('iid', '?')} (PID: {issue.get('project_id', '?')})" for issue in issues]
-            logger.info(f"📋 Fetched {len(issues)} issue(s): {', '.join(issue_ids)}")
+            logger.info(f"✅ Fetched {len(issues)} issue(s): {', '.join(issue_ids)}")
         else:
-            logger.info("📋 Fetched 0 issues")
+            logger.info("✅ Fetched 0 issues")
         
         return issues
 
