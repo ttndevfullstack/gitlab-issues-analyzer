@@ -25,7 +25,7 @@ from src.email_sender import EmailSender
 from src.exceptions import AnalysisError, ConfigurationError, EmailError, GitLabAPIError
 from src.gitlab_client import GitLabClient
 from src.monitor import IssueMonitor
-from src.reporter import generate_email_report
+from src.reporter import generate_email_report, LABEL_COLORS
 
 # Global flag for graceful shutdown
 shutdown_event = Event()
@@ -723,7 +723,7 @@ def issues_list():
         Rendered issues list HTML page
     """
     app_version = config.get("app", {}).get("version", "0.1.0") if config else "0.1.0"
-    return render_template("issues_list.html", version=app_version)
+    return render_template("issues_list.html", version=app_version, label_colors=LABEL_COLORS)
 
 
 @app.route("/issues/<int:issue_id>", methods=["GET"])

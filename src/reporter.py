@@ -7,9 +7,146 @@ This module generates HTML and plain text email reports with WWWH-TR analysis.
 import html
 from typing import Any, Dict
 
+# Label color mapping
+LABEL_COLORS = {
+    "UNIOSS 3": "rgb(143, 188, 143)",
+    "改修依頼": "rgb(230, 230, 250)",
+    "優先度 高": "rgb(194, 30, 86)",
+    "(報告)判断待ち": "rgb(0, 0, 255)",
+    "UNIOSS 2": "rgb(230, 230, 250)",
+    "UNIOSS 3 移行後対応": "rgb(148, 0, 211)",
+    "unitTest": "rgb(230, 230, 250)",
+    "おとどけ丸": "rgb(237, 145, 33)",
+    "さくら市": "rgb(230, 230, 250)",
+    "さぬき市": "rgb(230, 230, 250)",
+    "データ補正": "rgb(128, 128, 128)",
+    "ビオプラス": "rgb(102, 153, 204)",
+    "ビオプラス 要望": "rgb(0, 153, 102)",
+    "リファクタ": "rgb(238, 230, 0)",
+    "安中市": "rgb(230, 230, 250)",
+    "印南町": "rgb(102, 153, 204)",
+    "宇部市": "rgb(230, 230, 250)",
+    "下野市": "rgb(230, 230, 250)",
+    "笠岡市": "rgb(230, 230, 250)",
+    "菊川市": "rgb(230, 230, 250)",
+    "宮崎市": "rgb(230, 230, 250)",
+    "桑名市": "rgb(230, 230, 250)",
+    "君津市": "rgb(230, 230, 250)",
+    "芸西村": "rgb(230, 230, 250)",
+    "鍵和田": "rgb(102, 153, 204)",
+    "御嵩町": "rgb(230, 230, 250)",
+    "御殿場市": "rgb(230, 230, 250)",
+    "最優先": ["rgb(220, 20, 60)", "rgb(148, 0, 211)"],
+    "三好市": "rgb(230, 230, 250)",
+    "三朝町": "rgb(230, 230, 250)",
+    "仕様検討中": "rgb(230, 230, 250)",
+    "滋賀県甲賀市": "rgb(102, 153, 204)",
+    "自治体移行作業": "rgb(102, 153, 204)",
+    "自販機": "rgb(195, 153, 83)",
+    "鹿沼市": "rgb(230, 230, 250)",
+    "七尾市": "rgb(230, 230, 250)",
+    "七尾市(寄附金)": "rgb(230, 230, 250)",
+    "修正確認待ち": "rgb(0, 0, 255)",
+    "小矢部市": "rgb(230, 230, 250)",
+    "松田町": "rgb(230, 230, 250)",
+    "沼津市": "rgb(230, 230, 250)",
+    "上富田町": "rgb(230, 230, 250)",
+    "城崎": "rgb(102, 153, 204)",
+    "城里町": "rgb(230, 230, 250)",
+    "常総市": "rgb(230, 230, 250)",
+    "新潟県庁": "rgb(102, 153, 204)",
+    "新規自治体": "rgb(230, 230, 250)",
+    "新規実装": "rgb(230, 230, 250)",
+    "真岡市": "rgb(230, 230, 250)",
+    "請求・帳票の再構築": "rgb(255, 235, 205)",
+    "石狩市": "rgb(230, 230, 250)",
+    "川場村": "rgb(230, 230, 250)",
+    "泉佐野市": "rgb(230, 230, 250)",
+    "泉南市": "rgb(230, 230, 250)",
+    "相模原市": "rgb(230, 230, 250)",
+    "対応完了": "rgb(0, 136, 255)",
+    "対応中": "rgb(255, 0, 0)",
+    "大玉村": "rgb(230, 230, 250)",
+    "大村市": "rgb(230, 230, 250)",
+    "大網白里市": "rgb(230, 230, 250)",
+    "丹波篠山市": "rgb(230, 230, 250)",
+    "中井町": "rgb(230, 230, 250)",
+    "朝来市": "rgb(230, 230, 250)",
+    "長泉町": "rgb(230, 230, 250)",
+    "長野原町": "rgb(230, 230, 250)",
+    "辻岡": "rgb(102, 153, 204)",
+    "登別市": "rgb(230, 230, 250)",
+    "東伊豆町": "rgb(230, 230, 250)",
+    "湯河原町": "rgb(230, 230, 250)",
+    "徳島県三好市": "rgb(102, 153, 204)",
+    "那須町": "rgb(230, 230, 250)",
+    "白老町": "rgb(237, 145, 33)",
+    "美作市": "rgb(237, 145, 33)",
+    "不具合": "rgb(230, 230, 250)",
+    "富士市": "rgb(230, 230, 250)",
+    "富田林市": "rgb(230, 230, 250)",
+    "福井市": "rgb(230, 230, 250)",
+    "福岡県小郡市": "rgb(102, 153, 204)",
+    "宝塚市": "rgb(230, 230, 250)",
+    "優先度 中": "rgb(237, 145, 33)",
+    "優先度 低": "rgb(102, 153, 204)",
+    "竜王町": "rgb(230, 230, 250)",
+    "和歌山県印南町": "rgb(102, 153, 204)",
+}
+
+
+def get_label_color(label_name: str) -> str:
+    """
+    Get the color for a label from the mapping.
+    
+    Args:
+        label_name: Name of the label
+        
+    Returns:
+        Color string (RGB format) or default color if not found
+    """
+    color = LABEL_COLORS.get(label_name)
+    if color is None:
+        # Default color if label not in mapping
+        return "rgb(155, 155, 155)"
+    
+    # Handle array colors (use first color)
+    if isinstance(color, list):
+        return color[0]
+    
+    return color
+
+
+def get_text_color_for_background(bg_color: str) -> str:
+    """
+    Determine appropriate text color (black or white) based on background color brightness.
+    
+    Args:
+        bg_color: Background color in RGB format (e.g., "rgb(230, 230, 250)")
+        
+    Returns:
+        Text color string ("#000000" for light backgrounds, "#ffffff" for dark backgrounds)
+    """
+    import re
+    
+    # Extract RGB values from "rgb(r, g, b)" format
+    match = re.match(r"rgb\((\d+),\s*(\d+),\s*(\d+)\)", bg_color)
+    if not match:
+        # Default to white if format is unexpected
+        return "#ffffff"
+    
+    r, g, b = int(match.group(1)), int(match.group(2)), int(match.group(3))
+    
+    # Calculate relative luminance (simplified formula)
+    # Using standard formula: 0.299*R + 0.587*G + 0.114*B
+    brightness = (0.299 * r + 0.587 * g + 0.114 * b)
+    
+    # Use black text for light backgrounds (brightness > 128), white for dark
+    return "#000000" if brightness > 128 else "#ffffff"
+
 # Fixed HTML template for AI to fill in
 FIXED_HTML_TEMPLATE = """<div class="rcmBody" id="message-htmlpart1" style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5">
-    <table style="width: 100%; border-collapse: collapse; background-color: #f5f5f5">
+    <table style="width: 100%; background-color: #f5f5f5">
         <tbody><tr>
             <td>
                 <table style="width: 100%; max-width: 800px; margin: 0 auto; background-color: #ffffff;">
@@ -26,7 +163,7 @@ FIXED_HTML_TEMPLATE = """<div class="rcmBody" id="message-htmlpart1" style="marg
                         <div style="margin-top: 12px; font-size: 14px; line-height: 1.8">
                             <div style="margin-bottom: 8px">
                                 <span style="font-weight: 600; color: #555; margin-right: 8px">Status:</span>
-                                <span style="display: inline-block; background-color: #4a90e2; color: #ffffff; padding: 4px 12px; border-radius: 16px; font-size: 12px;">{ISSUE_STATE}</span>
+                                <span style="display: inline-block; background-color: {ISSUE_STATE_COLOR}; color: #ffffff; padding: 4px 12px; border-radius: 16px; font-size: 12px;">{ISSUE_STATE}</span>
                             </div>
                             <div style="margin-bottom: 8px">
                                 <span style="font-weight: 600; color: #555; margin-right: 8px">Priority:</span>
@@ -184,13 +321,21 @@ def get_fixed_html_template(issue_data: Dict[str, Any]) -> str:
     title = issue_data.get("title", "Untitled Issue")
     url = issue_data.get("web_url") or issue_data.get("url", "#")
     state = issue_data.get("state", "unknown")
+    
+    # Get status badge color - use #52b87a for "open" state
+    state_lower = str(state).lower()
+    if state_lower == "opened" or state_lower == "open":
+        status_color = "#52b87a"
+    else:
+        # Default color for other states (closed, etc.)
+        status_color = "#4a90e2"
 
     # Format priority
     priority = issue_data.get("priority", "not set")
     if isinstance(priority, dict):
         priority = priority.get("name", "not set")
 
-    # Format labels as rounded badges
+    # Format labels as rounded badges with color mapping
     labels = issue_data.get("labels", [])
     labels_html = ""
     if labels:
@@ -199,10 +344,15 @@ def get_fixed_html_template(issue_data: Dict[str, Any]) -> str:
             label_name = (
                 label.get("name", label) if isinstance(label, dict) else str(label)
             )
+            # Get color from mapping
+            label_color = get_label_color(str(label_name))
+            # Determine text color based on background brightness
+            text_color = get_text_color_for_background(label_color)
+            
             # Create rounded badge for each label
             label_escaped = html.escape(str(label_name))
             labels_badges.append(
-                f'<span style="display: inline-block; background-color: #9b59b6; color: #ffffff; padding: 4px 12px; border-radius: 16px; font-size: 12px; margin-right: 6px; margin-bottom: 4px">{label_escaped}</span>'
+                f'<span style="display: inline-block; background-color: {label_color}; color: {text_color}; padding: 4px 12px; border-radius: 16px; font-size: 12px; margin-right: 6px; margin-bottom: 4px">{label_escaped}</span>'
             )
         labels_html = "".join(labels_badges)
     else:
@@ -229,6 +379,7 @@ def get_fixed_html_template(issue_data: Dict[str, Any]) -> str:
     # Fill in issue metadata, leave analysis sections as placeholders
     template = FIXED_HTML_TEMPLATE.replace("{ISSUE_TITLE}", html.escape(title))
     template = template.replace("{ISSUE_STATE}", html.escape(str(state)))
+    template = template.replace("{ISSUE_STATE_COLOR}", status_color)
     template = template.replace("{ISSUE_PRIORITY}", html.escape(str(priority)))
     template = template.replace("{ISSUE_LABELS}", labels_html)  # Already HTML formatted
     template = template.replace("{ISSUE_URL}", html.escape(url))
@@ -301,7 +452,7 @@ def format_html_email(issue_data: Dict[str, Any], analysis: Dict[str, str]) -> s
     url = issue_data.get("web_url") or issue_data.get("url", "#")
     state = issue_data.get("state", "unknown")
 
-    # Format labels
+    # Format labels with color mapping
     labels = issue_data.get("labels", [])
     labels_html = ""
     if labels:
@@ -310,8 +461,11 @@ def format_html_email(issue_data: Dict[str, Any], analysis: Dict[str, str]) -> s
             label_name = (
                 label.get("name", label) if isinstance(label, dict) else str(label)
             )
+            label_color = get_label_color(str(label_name))
+            text_color = get_text_color_for_background(label_color)
+            label_escaped = html.escape(str(label_name))
             labels_list.append(
-                f'<span style="background-color: #e0e0e0; padding: 2px 6px; border-radius: 16px; margin-right: 4px;">{label_name}</span>'
+                f'<span style="background-color: {label_color}; color: {text_color}; padding: 2px 6px; border-radius: 16px; margin-right: 4px;">{label_escaped}</span>'
             )
         labels_html = "".join(labels_list)
 
