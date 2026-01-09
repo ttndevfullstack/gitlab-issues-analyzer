@@ -31,12 +31,11 @@ from src.reporter import generate_email_report
 shutdown_event = Event()
 app = Flask(__name__)
 
-# Disable Werkzeug's default request logging (we'll use our own timezone-aware logging)
-import logging
+# Disable Werkzeug's default request logging to use timezone-aware logging
 werkzeug_logger = logging.getLogger("werkzeug")
-werkzeug_logger.setLevel(logging.WARNING)  # Only show warnings/errors, not every request
+werkzeug_logger.setLevel(logging.WARNING)
 
-# Global components (initialized in main)
+# Global components
 gitlab_client: Optional[GitLabClient] = None
 analyzer: Optional[IssueAnalyzer] = None
 email_sender: Optional[EmailSender] = None
@@ -58,10 +57,8 @@ def setup_logging(log_level: str = "INFO", timezone: str = "Asia/Ho_Chi_Minh") -
     Returns:
         Configured logger
     """
-    # Create a custom formatter with timezone-aware timestamps
     class TimezoneFormatter(logging.Formatter):
         def __init__(self, tz_str):
-            # Set format to include timestamp, logger name, level, and message
             super().__init__(
                 fmt="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
                 datefmt=None
@@ -75,32 +72,23 @@ def setup_logging(log_level: str = "INFO", timezone: str = "Asia/Ho_Chi_Minh") -
             dt = datetime.fromtimestamp(record.created, tz=self.tz)
             if datefmt:
                 return dt.strftime(datefmt)
-            # Format without timezone offset (just date and time)
             return dt.strftime("%Y-%m-%d %H:%M:%S")
 
-    # Validate timezone
     try:
         pytz.timezone(timezone)
     except pytz.exceptions.UnknownTimeZoneError:
-        # Use basic logger for warning (before full setup)
         basic_logger = logging.getLogger(__name__)
         basic_logger.warning(f"Unknown timezone: {timezone}, falling back to UTC")
         timezone = "UTC"
 
-    # Create formatter with timezone
     formatter = TimezoneFormatter(timezone)
-
-    # Create handler
     handler = logging.StreamHandler()
     handler.setFormatter(formatter)
-
-    # Configure root logger
     root_logger = logging.getLogger()
     root_logger.setLevel(getattr(logging, log_level.upper(), logging.INFO))
     root_logger.handlers = [handler]
     
-    # Also configure Werkzeug (Flask's server) logger to use timezone-aware timestamps
-    # Create a custom formatter for Werkzeug that matches its default format but with timezone
+    # Configure Werkzeug logger to use timezone-aware timestamps
     class WerkzeugTimezoneFormatter(logging.Formatter):
         """Formatter for Werkzeug access logs with timezone-aware timestamps."""
         def __init__(self, tz_str):
@@ -504,7 +492,7 @@ def run_polling_mode(poll_interval: int) -> None:
     Args:
         poll_interval: Polling interval in seconds
     """
-    # Start Flask server in background thread for dashboard access
+    # Start Flask server in background thread for dashboard access during polling
     flask_host = config.get("app", {}).get("webhook_host", "0.0.0.0")
     flask_port = config.get("app", {}).get("webhook_port", 8000)
     flask_thread = Thread(
@@ -518,65 +506,38 @@ def run_polling_mode(poll_interval: int) -> None:
 
     while not shutdown_event.is_set():
         try:
-            # Poll for new issues
-
-            # Get filter configuration
             gitlab_config = config.get("gitlab", {})
             issue_filter = gitlab_config.get("issue_filter", {})
-            scope = issue_filter.get("scope")  # e.g., "all"
-            labels = issue_filter.get("labels")  # e.g., ["UNIOSS 3"]
+            scope = issue_filter.get("scope")
+            labels = issue_filter.get("labels")
 
-            # Get start time to filter out old issues
-            # Priority: 1. ISSUE_START_TIME env var, 2. system_start_time from cache
-            created_after = None
+            # Get start time from ENV or default to current time
             issue_start_time = config.get("app", {}).get("issue_start_time")
             
             if issue_start_time:
-                # Normalize timestamp to ISO 8601 format for GitLab API
-                try:
-                    # Replace space with T for ISO 8601 compatibility (e.g., "2026-01-05 00:00:00" -> "2026-01-05T00:00:00")
-                    normalized_time = issue_start_time.strip().replace(" ", "T", 1)
-                    # If no timezone specified (no Z, no +/-, or doesn't end with timezone offset), assume UTC
-                    has_timezone = (
-                        normalized_time.endswith("Z") or
-                        (len(normalized_time) >= 6 and normalized_time[-6] in "+-" and ":" in normalized_time[-5:])
-                    )
-                    if not has_timezone:
-                        normalized_time += "Z"
-                    created_after = normalized_time
-                    if created_after != issue_start_time:
-                        logger.info(f"📅 Using ISSUE_START_TIME from environment: {issue_start_time} (normalized to: {created_after})")
-                    else:
-                        logger.info(f"📅 Using ISSUE_START_TIME from environment: {created_after}")
-                except Exception as e:
-                    # If normalization fails, use as-is (might fail later, but let GitLab API handle it)
-                    created_after = issue_start_time
-                    logger.warning(f"⚠️ Could not normalize ISSUE_START_TIME format, using as-is: {issue_start_time}")
-            elif analysis_cache:
-                # Fall back to system start time from cache
-                system_start_time = analysis_cache.get_system_start_time()
-                if system_start_time:
-                    created_after = system_start_time
+                # Normalize to ISO 8601 format for GitLab API
+                normalized_time = issue_start_time.strip().replace(" ", "T", 1)
+                if not (normalized_time.endswith("Z") or ("+" in normalized_time[-6:] or "-" in normalized_time[-6:])):
+                    normalized_time += "Z"
+                created_after = normalized_time
+                logger.info(f"👉 Start time to filter issues: {created_after}")
+            else:
+                created_after = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+                logger.info(f"👉 Start time to filter issues: {created_after}")
             
-            # Format timestamp to Vietnam timezone for display
+            # Format timestamp for display in configured timezone
             if created_after:
                 try:
-                    # Parse ISO timestamp (may be UTC with Z)
-                    # Remove Z and parse as UTC
                     time_str = created_after.replace("Z", "+00:00")
                     dt_utc = datetime.fromisoformat(time_str)
-                    # Convert to configured timezone
                     timezone_str = config.get("app", {}).get("timezone", "Asia/Ho_Chi_Minh")
                     tz = pytz.timezone(timezone_str)
-                    # Ensure datetime is timezone-aware (UTC)
                     if dt_utc.tzinfo is None:
                         dt_utc = pytz.UTC.localize(dt_utc)
-                    # Convert to target timezone
                     dt_local = dt_utc.astimezone(tz)
                     formatted_time = dt_local.strftime("%Y-%m-%d %H:%M:%S")
                     logger.debug(f"👉 Filtering issues created after: {formatted_time}")
                 except Exception as e:
-                    # Fallback to original format if parsing fails
                     logger.debug(f"👉 Filtering issues created after: {created_after}")
 
             new_issues = monitor.poll_issues(
@@ -587,7 +548,7 @@ def run_polling_mode(poll_interval: int) -> None:
             )
 
             if new_issues:
-                # Filter out issues that are already cached in analysis_cache
+                # Filter out already cached issues to avoid reprocessing
                 issues_to_analyze = []
                 cached_issues = []
                 
@@ -595,7 +556,6 @@ def run_polling_mode(poll_interval: int) -> None:
                     issue_id = issue.get("id")
                     issue_iid = issue.get("iid")
                     
-                    # Check if issue is already cached (analyzed)
                     if issue_id and analysis_cache:
                         cached_data = analysis_cache.get_issue_with_report(issue_id, issue_iid)
                         if cached_data:
@@ -604,7 +564,7 @@ def run_polling_mode(poll_interval: int) -> None:
                     
                     issues_to_analyze.append(issue)
                 
-                # Apply max_issues_per_poll limit (for testing mode)
+                # Apply limit for testing mode
                 max_issues = config["app"].get("max_issues_per_poll")
                 original_count = len(issues_to_analyze)
                 if max_issues is not None and max_issues > 0:
@@ -617,7 +577,7 @@ def run_polling_mode(poll_interval: int) -> None:
                     issue_list = [f"#{issue.get('iid', '?')} (PID: {issue.get('project_id', '?')})" for issue in issues_to_analyze]
                     logger.info(f"✅ Found {len(issues_to_analyze)} new issue(s): {', '.join(issue_list)}")
                 else:
-                    logger.info("👉 Not found new issue")
+                    logger.info("👉 No new issues")
                 
                 # Update new_issues to only include issues to analyze
                 new_issues = issues_to_analyze
@@ -646,7 +606,7 @@ def run_polling_mode(poll_interval: int) -> None:
                     else:
                         logger.warning(f"⚠️ Skipping issue without IID: {issue}")
             else:
-                logger.info("📧 Not found new issue")
+                logger.info("👉 No new issues")
 
             # Wait for next poll (with interruptible sleep)
             if not shutdown_event.wait(poll_interval):
@@ -1474,7 +1434,7 @@ def main() -> int:
     logger.info(f"🌏 Timezone: {timezone}")
 
     # Load and validate configuration (from environment variables only)
-    logger.info("👉 Loading configuration from environment...")
+    logger.info("👉 Loading configuration from environment")
 
     # System information
     logger.info(f"⚙️ _Environment: {config['app'].get('environment', 'production')}")

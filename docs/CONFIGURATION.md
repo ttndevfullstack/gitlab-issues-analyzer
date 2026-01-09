@@ -1,286 +1,278 @@
 # Configuration Guide
 
-This guide explains all configuration options for the GitLab Issues Analyzer.
+Complete reference for all configuration options in GitLab Issues Analyzer.
 
-## Table of Contents
+## Configuration Method
 
-1. [Configuration Methods](#configuration-methods)
-2. [GitLab Configuration](#gitlab-configuration)
-3. [AI Provider Configuration](#ai-provider-configuration)
-4. [SMTP Configuration](#smtp-configuration)
-5. [Application Configuration](#application-configuration)
-6. [Configuration Examples](#configuration-examples)
-7. [Security Best Practices](#security-best-practices)
-
-## Configuration Methods
-
-The application uses **environment variables only** for configuration.
-
-1. **Environment Variables** (from `.env` file or system environment)
-
-   - Best for deployment platforms (Docker, cloud services)
-   - Secure and flexible
-   - Recommended for all environments (production, development, testing)
-   - Use `.env` file for local development (automatically loaded by `python-dotenv`)
-
-2. **Default Values**
-   - Fallback for optional settings only
-   - Required settings must be provided via environment variables
+Configuration is done via **environment variables** only. Load from `.env` file or system environment.
 
 ## GitLab Configuration
 
-### Required Settings
+### Required
 
-#### `GITLAB_URL` / `gitlab.url`
-
+#### `GITLAB_URL`
 - **Type**: String
 - **Description**: GitLab instance URL
-- **Examples**:
+- **Examples**: 
   - `https://gitlab.com` (GitLab.com)
   - `https://gitlab.example.com` (Self-hosted)
-- **Default**: None (required)
+- **Required**: Yes
 
-#### `GITLAB_TOKEN` / `gitlab.token`
-
+#### `GITLAB_TOKEN`
 - **Type**: String
 - **Description**: GitLab Personal Access Token
-- **How to Get**:
-  1. Go to GitLab → Settings → Access Tokens
+- **How to Get**: 
+  1. GitLab → Settings → Access Tokens
   2. Create token with `api` scope
   3. Copy token (starts with `glpat-` or `gl-`)
 - **Security**: Never commit to version control
-- **Default**: None (required)
+- **Required**: Yes
 
-### Optional Settings
+### Optional
 
-#### `GITLAB_ISSUE_SCOPE` / `gitlab.issue_filter.scope`
+#### `GITLAB_ISSUE_SCOPE`
+- **Type**: String
+- **Description**: Scope filter for global issues endpoint
+- **Options**: `all`, `assigned_to_me`, `created_by_me`
+- **Default**: `null` (no filter)
+- **Example**: `GITLAB_ISSUE_SCOPE=all`
 
-- **Type**: String (Optional)
-- **Description**: Scope filter for global endpoint
-- **Options**: `"all"`, `"assigned_to_me"`, `"created_by_me"`, etc.
-- **Example**: `"all"` - Get all issues you have access to
-- **Environment Variable**: `GITLAB_ISSUE_SCOPE=all`
-- **Default**: `null` (optional)
-
-#### `GITLAB_ISSUE_LABELS` / `gitlab.issue_filter.labels`
-
-- **Type**: String (Comma-separated) or Array
-- **Description**: Filter issues by label names when using global endpoint
-- **Example**: `"UNIOSS 3"` or `"UNIOSS 3,bug"` for multiple labels
-- **Environment Variable**: `GITLAB_ISSUE_LABELS=UNIOSS 3` or `GITLAB_ISSUE_LABELS=UNIOSS 3,bug`
-- **Note**: Comma-separated values are automatically split into an array
-- **Default**: `null` (optional)
+#### `GITLAB_ISSUE_LABELS`
+- **Type**: String (comma-separated)
+- **Description**: Filter issues by label names
+- **Example**: `GITLAB_ISSUE_LABELS=UNIOSS 3,bug`
+- **Default**: `null` (no filter)
 
 ## AI Provider Configuration
 
-### Required Settings
+### Required
 
-#### `AI_PROVIDER` / `ai.provider`
-
+#### `AI_PROVIDER`
 - **Type**: String
-- **Description**: AI provider to use for analysis
-- **Options**:
-  - `openrouter` (Default, recommended for DeepSeek v3.2 with reasoning mode)
-  - `openai` (OpenAI ChatGPT)
+- **Description**: AI provider to use
+- **Options**: `openrouter` (recommended), `openai`
 - **Default**: `openrouter`
-- **Note**: Only `openrouter` and `openai` are supported. Deprecated providers (deepseek, anthropic, custom) are automatically migrated to `openrouter`.
+- **Required**: Yes
 
-#### `AI_API_KEY` / `ai.api_key`
-
+#### `AI_API_KEY`
 - **Type**: String
-- **Description**: API key for selected AI provider
+- **Description**: API key for selected provider
 - **How to Get**:
-  - **OpenRouter**: Sign up at [OpenRouter](https://openrouter.ai/) and get API key
-  - **OpenAI**: Sign up at [OpenAI Platform](https://platform.openai.com/) and get API key
+  - **OpenRouter**: Sign up at [openrouter.ai](https://openrouter.ai/)
+  - **OpenAI**: Sign up at [platform.openai.com](https://platform.openai.com/)
 - **Security**: Never commit to version control
-- **Default**: None (required)
+- **Required**: Yes
 
-### Optional Settings
+### Optional
 
-#### `AI_MODEL` / `ai.model`
-
+#### `AI_MODEL`
 - **Type**: String
-- **Description**: AI model to use (provider-specific)
-- **Options by Provider**:
-  - **OpenRouter**: `deepseek/deepseek-v3.2` (recommended, default), `openai/gpt-4`, `anthropic/claude-3-opus`, etc.
-  - **OpenAI**: `gpt-4`, `gpt-4-turbo`, `gpt-3.5-turbo`
-- **Default**: `deepseek/deepseek-v3.2` (when using OpenRouter)
-- **Note**: For OpenRouter, use format `provider/model-name` (e.g., `deepseek/deepseek-v3.2`)
+- **Description**: AI model identifier
+- **Default**: `tngtech/deepseek-r1t2-chimera:free`
+- **Examples**:
+  - OpenRouter: `tngtech/deepseek-r1t2-chimera:free`, `deepseek/deepseek-v3.2`
+  - OpenAI: `gpt-4`, `gpt-4-turbo`, `gpt-3.5-turbo`
+- **Note**: Format is `provider/model-name` for OpenRouter
 
-#### `AI_MAX_TOKENS` / `ai.max_tokens`
-
+#### `AI_MAX_TOKENS`
 - **Type**: Integer
-- **Description**: Maximum tokens in response
-- **Range**: 1 to 16000+ (varies by provider and model)
-- **Recommended**:
-  - `2000` (standard analysis)
-  - `16000` (when `AI_ENABLE_REASONING=true` for complete HTML output)
+- **Description**: Maximum tokens in AI response
 - **Default**: `2000`
-- **Note**: When reasoning mode is enabled, `max_tokens` is automatically increased to 16000 to prevent truncation
+- **Recommended**: `16000` when `AI_ENABLE_REASONING=true`
+- **Range**: 1-16000+ (varies by provider/model)
 
-#### `AI_ENABLE_REASONING` / `ai.enable_reasoning`
-
+#### `AI_ENABLE_REASONING`
 - **Type**: Boolean
-- **Description**: Enable reasoning/deepthink mode for OpenRouter with DeepSeek models
-- **When to Use**: Enable for better analysis quality with DeepSeek v3.2+ via OpenRouter
-- **Default**: `true` (when using OpenRouter)
-- **Environment Variable**: `AI_ENABLE_REASONING=true` or `AI_ENABLE_REASONING=false`
-- **Note**: Adds `"reasoning": {"enabled": true}` to API request payload. Only works with OpenRouter and compatible providers.
+- **Description**: Enable reasoning/deepthink mode (OpenRouter only)
+- **Default**: `true`
+- **Note**: Adds `"reasoning": {"enabled": true}` to API request. Only works with compatible models.
 
 ## SMTP Configuration
 
-### Required Settings
+### Required
 
-#### `SMTP_HOST` / `smtp.host`
-
+#### `SMTP_HOST`
 - **Type**: String
 - **Description**: SMTP server hostname
 - **Common Values**:
   - Gmail: `smtp.gmail.com`
   - Outlook: `smtp-mail.outlook.com`
   - Yahoo: `smtp.mail.yahoo.com`
-  - Custom: Check your email provider
-- **Default**: None (required)
+- **Required**: Yes
 
-#### `SMTP_PORT` / `smtp.port`
-
+#### `SMTP_PORT`
 - **Type**: Integer
 - **Description**: SMTP server port
-- **Common Values**:
-  - TLS: `587` (recommended)
-  - SSL: `465`
-  - Plain: `25` (not recommended)
+- **Common Values**: `587` (TLS, recommended), `465` (SSL), `25` (not recommended)
 - **Default**: `587`
+- **Required**: Yes
 
-#### `SMTP_USERNAME` / `smtp.username`
-
+#### `SMTP_USERNAME`
 - **Type**: String
 - **Description**: SMTP username (usually your email)
 - **Example**: `your-email@gmail.com`
-- **Default**: None (required)
+- **Required**: Yes
 
-#### `SMTP_PASSWORD` / `smtp.password`
-
+#### `SMTP_PASSWORD`
 - **Type**: String
 - **Description**: SMTP password or app password
 - **Note**: For Gmail, use App Password (not regular password)
 - **Security**: Never commit to version control
-- **Default**: None (required)
+- **Required**: Yes
 
-#### `SMTP_FROM_EMAIL` / `smtp.from_email`
-
+#### `SMTP_FROM_EMAIL`
 - **Type**: String
 - **Description**: Sender email address
 - **Example**: `your-email@gmail.com`
 - **Note**: Usually same as `SMTP_USERNAME`
-- **Default**: None (required)
+- **Required**: Yes
 
-#### `SMTP_TO_EMAIL` / `smtp.to_email`
-
-- **Type**: String or Array
+#### `SMTP_TO_EMAIL`
+- **Type**: String or comma-separated list
 - **Description**: Recipient email address(es)
-- **Examples**:
+- **Examples**: 
   - Single: `recipient@example.com`
-  - Multiple: `["email1@example.com", "email2@example.com"]`
-- **Default**: None (required)
+  - Multiple: `email1@example.com,email2@example.com`
+- **Required**: Yes
 
 ## Application Configuration
 
-### Required Settings
-
-None - all application settings are optional with sensible defaults.
-
 ### Optional Settings
 
-#### `APP_MODE` / `app.mode`
-
+#### `APP_MODE`
 - **Type**: String
-- **Description**: Application mode
-- **Options**:
-  - `webhook`: Receive GitLab webhook events (real-time)
-  - `poll`: Periodically check for new issues (default)
-- **Environment Variable**: `APP_MODE=poll` or `APP_MODE=webhook`
+- **Description**: Application operation mode
+- **Options**: `poll` (periodic checks), `webhook` (real-time events)
 - **Default**: `poll`
+- **Example**: `APP_MODE=poll`
 
-#### `ENVIRONMENT` / `app.environment`
-
+#### `ENVIRONMENT`
 - **Type**: String
-- **Description**: Application environment mode
-- **Options**:
-  - `production` (default): Full production settings
-  - `development`: Debug logging, shorter poll intervals
-  - `testing`: Processes only 1 issue, debug logging, 1-minute poll interval
-- **Environment Variable**: `ENVIRONMENT=production`
+- **Description**: Application environment
+- **Options**: `production`, `development`, `testing`
 - **Default**: `production`
+- **Behavior**:
+  - `production`: Standard settings, 15-minute poll interval
+  - `development`: Debug logging, shorter intervals, Flask auto-reload
+  - `testing`: 1 issue per poll, 1-minute interval, debug logging
 
-#### `ENABLE_AUTOMATION` / `app.enable_automation`
-
+#### `ENABLE_AUTOMATION`
 - **Type**: Boolean
-- **Description**: Enable/disable automated polling and webhook processing
-- **Options**: `true` or `false`
-- **Environment Variable**: `ENABLE_AUTOMATION=true`
+- **Description**: Enable automated polling/webhook processing
 - **Default**: `true`
-- **Note**:
-  - When `false`, automatic polling/webhook processing is disabled
-  - Dashboard and manual triggers remain available
+- **Note**: When `false`, automatic processing is disabled but dashboard and manual triggers remain available
 
-#### `MAX_ISSUES_PER_POLL` / `app.max_issues_per_poll`
-
-- **Type**: Integer (Optional)
-- **Description**: Limit number of issues to process per polling cycle
-- **Use Case**: Testing mode - process only 1 issue at a time
-- **Example**: `1` - Process only 1 issue per poll
-- **Environment Variable**: `MAX_ISSUES_PER_POLL=1`
-- **Default**: `null` (unlimited, processes all new issues)
-- **Note**: In `testing` environment, automatically set to `1` if not specified
-
-#### `POLL_INTERVAL` / `app.poll_interval`
-
+#### `POLL_INTERVAL`
 - **Type**: Integer
 - **Description**: Polling interval in seconds (polling mode only)
-- **Examples**:
-  - `300` (5 minutes)
-  - `900` (15 minutes, default)
-  - `3600` (1 hour)
-- **Environment Variable**: `POLL_INTERVAL=900`
-- **Note**: Lower intervals may hit rate limits
 - **Default**: `900` (15 minutes)
+- **Examples**: `300` (5 min), `900` (15 min), `3600` (1 hour)
+- **Note**: Lower intervals may hit rate limits
 
-#### `LOG_LEVEL` / `app.log_level`
+#### `MAX_ISSUES_PER_POLL`
+- **Type**: Integer
+- **Description**: Limit number of issues processed per polling cycle
+- **Default**: `null` (unlimited)
+- **Use Case**: Testing mode - process only 1 issue at a time
+- **Example**: `MAX_ISSUES_PER_POLL=1`
+- **Note**: Automatically set to `1` in `testing` environment if not specified
 
+#### `ISSUE_START_TIME`
+- **Type**: String (ISO 8601 timestamp)
+- **Description**: Only process issues created after this time
+- **Formats**:
+  - `2026-01-05T00:00:00Z` (ISO 8601 with UTC - recommended)
+  - `2026-01-05 00:00:00` (space-separated, normalized to UTC)
+  - `2026-01-05T00:00:00+07:00` (with timezone offset)
+- **Default**: Current time (only new issues after startup)
+- **Use Case**: Local development to avoid reprocessing existing issues
+
+#### `LOG_LEVEL`
 - **Type**: String
-- **Description**: Logging level
+- **Description**: Logging verbosity level
 - **Options**: `DEBUG`, `INFO`, `WARNING`, `ERROR`
-- **Environment Variable**: `LOG_LEVEL=INFO`
 - **Default**: `INFO`
 
-## Environment-Specific Behavior
+#### `TIMEZONE`
+- **Type**: String
+- **Description**: Timezone for log timestamps
+- **Default**: `Asia/Ho_Chi_Minh`
+- **Example**: `TIMEZONE=UTC`, `TIMEZONE=America/New_York`
+- **Format**: IANA timezone identifier
 
-### Production Mode (`ENVIRONMENT=production`)
+#### `APP_VERSION`
+- **Type**: String
+- **Description**: Application version displayed in UI
+- **Default**: `1.0.0`
+- **Example**: `APP_VERSION=1.2.3`
 
-- Default settings
-- Poll interval: 900 seconds (15 minutes)
-- Log level: INFO
-- Processes all new issues
+#### `WEBHOOK_PORT`
+- **Type**: Integer
+- **Description**: Port for webhook server and dashboard
+- **Default**: `8000`
+- **Example**: `WEBHOOK_PORT=8080`
 
-### Development Mode (`ENVIRONMENT=development`)
+## Configuration Examples
 
-- Debug logging enabled
-- Shorter poll intervals
-- More verbose output
+### Minimal Production Setup
 
-### Testing Mode (`ENVIRONMENT=testing`)
+```bash
+GITLAB_URL=https://gitlab.com
+GITLAB_TOKEN=glpat-xxxxx
+GITLAB_ISSUE_SCOPE=all
+GITLAB_ISSUE_LABELS=bug,feature
 
-- Automatically limits to 1 issue per poll
-- Debug logging enabled
-- Poll interval reduced to 60 seconds (1 minute)
-- Useful for testing without processing all issues
+AI_PROVIDER=openrouter
+AI_API_KEY=sk-or-xxxxx
+AI_MODEL=tngtech/deepseek-r1t2-chimera:free
+
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USERNAME=user@gmail.com
+SMTP_PASSWORD=app-password
+SMTP_FROM_EMAIL=user@gmail.com
+SMTP_TO_EMAIL=recipient@example.com
+
+APP_MODE=poll
+ENVIRONMENT=production
+```
+
+### Development Setup
+
+```bash
+ENVIRONMENT=development
+LOG_LEVEL=DEBUG
+POLL_INTERVAL=300
+MAX_ISSUES_PER_POLL=1
+ISSUE_START_TIME=2026-01-01T00:00:00Z
+```
+
+### Testing Setup
+
+```bash
+ENVIRONMENT=testing
+LOG_LEVEL=DEBUG
+# MAX_ISSUES_PER_POLL automatically set to 1
+# POLL_INTERVAL automatically set to 60
+```
+
+## Security Best Practices
+
+1. **Never commit `.env` files** to version control
+2. **Use App Passwords** for Gmail/Outlook instead of regular passwords
+3. **Rotate credentials** periodically
+4. **Use environment variables** in production (not `.env` files)
+5. **Validate configuration** on startup (automatic)
+
+## Validation
+
+Configuration is validated on startup. The application will fail fast with clear error messages if required settings are missing or invalid.
 
 ## Next Steps
 
 After configuration:
 
 1. Check logs for configuration errors on startup
-2. Verify all connections work
-3. Test with manual trigger via dashboard
+2. Verify connections (GitLab API, AI API, SMTP)
+3. Test with manual trigger via dashboard (`http://localhost:8000`)
 4. Monitor first few issue analyses

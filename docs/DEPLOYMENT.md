@@ -1,63 +1,15 @@
 # Deployment Guide
 
-This guide covers deployment options for GitLab Issues Analyzer.
+Deployment instructions for GitLab Issues Analyzer.
 
-## Table of Contents
-
-- [Docker Deployment](#docker-deployment)
-- [Docker Compose Deployment](#docker-compose-deployment)
-- [Health Checks](#health-checks)
-- [Troubleshooting](#troubleshooting)
-- [Best Practices](#best-practices)
-
-## Docker Deployment
+## Docker Deployment (Recommended)
 
 ### Prerequisites
 
-- Docker installed
-- Docker Compose
+- Docker and Docker Compose installed
+- `.env` file configured with all required variables
 
-### Production Docker Deployment
-
-For production, use Docker Compose (recommended) or direct Docker commands:
-
-**Using Docker Compose (Recommended):**
-
-```bash
-# Create .env file from .env.example and add your config
-# Then start:
-docker-compose up -d
-```
-
-**Using Docker directly:**
-
-```bash
-# Build production image
-docker build -t gitlab-issues-analyzer:latest .
-
-# Run with environment variables from .env file
-docker run -d \
-  --name gitlab-analyzer \
-  --restart unless-stopped \
-  --env-file .env \
-  -v $(pwd)/data:/app/data \
-  -p 8000:8000 \
-  gitlab-issues-analyzer:latest
-```
-
-**Required Environment Variables:**
-
-See `.env.example` for the complete list. Minimum required:
-- `GITLAB_URL`, `GITLAB_TOKEN`
-- `GITLAB_ISSUE_SCOPE`, `GITLAB_ISSUE_LABELS`
-- `AI_PROVIDER`, `AI_API_KEY`, `AI_MODEL`
-- `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM_EMAIL`, `SMTP_TO_EMAIL`
-
-## Docker Compose Deployment
-
-### Quick Start with Docker Compose
-
-The easiest way to deploy is using `docker-compose.yml`:
+### Quick Start
 
 ```bash
 # Start the application
@@ -70,39 +22,44 @@ docker-compose logs -f
 docker-compose down
 ```
 
-### Docker Compose Configuration
+### Production Deployment
 
-The `docker-compose.yml` file includes:
-- Automatic restart policy
-- Data volume persistence (`./data`)
-- Health checks
-- Environment variable loading from `.env` file
-- Port mapping for dashboard/webhook (default: 8000)
+```bash
+# Build and start
+docker-compose up -d --build
 
-### Development with Live Code Mounting
+# View logs
+docker-compose logs -f
 
-For development, use `docker-compose.dev.yml` to mount code for live updates:
+# Restart
+docker-compose restart
+```
+
+### Development Deployment
+
+For development with live code reloading:
 
 ```bash
 docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
 ```
 
-This mounts the source code, so changes are picked up automatically without rebuilding.
+Code changes are automatically picked up without rebuilding the container.
+
+### Docker Compose Configuration
+
+The `docker-compose.yml` includes:
+
+- Automatic restart policy
+- Data volume persistence (`./data`)
+- Health checks
+- Environment variable loading from `.env`
+- Port mapping for dashboard/webhook (default: 8000)
 
 ## Health Checks
 
-### Docker Health Check
-
-The Dockerfile includes a health check that verifies Python is working:
-
-```dockerfile
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python3 -c "import sys; sys.exit(0)" || exit 1
-```
-
 ### Health Endpoint
 
-The application exposes a health endpoint (available in both poll and webhook modes):
+The application exposes a health endpoint:
 
 ```bash
 curl http://localhost:8000/health
@@ -114,98 +71,150 @@ Response:
 {
   "status": "healthy",
   "service": "GitLab Issues Analyzer",
-  "version": "0.1.0"
+  "version": "1.0.0"
 }
 ```
 
-The health endpoint is always available when the Flask server is running (which starts automatically for the dashboard).
+### Docker Health Check
+
+The Dockerfile includes a health check that verifies the application is running:
+
+```dockerfile
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python3 -c "import sys; sys.exit(0)" || exit 1
+```
 
 ## Troubleshooting
 
-### Common Issues
+### Container Exits Immediately
 
-**Issue**: Container exits immediately
+- Check logs: `docker-compose logs`
+- Verify all required environment variables are set
+- Check for configuration errors in logs
 
-- **Solution**: Check logs with `docker logs gitlab-analyzer`
-- **Solution**: Verify all required environment variables are set
+### Cannot Connect to GitLab API
 
-**Issue**: Cannot connect to GitLab API
+- Verify `GITLAB_URL` and `GITLAB_TOKEN` are correct
+- Check token has `api` scope
+- Verify network connectivity
 
-- **Solution**: Verify `GITLAB_URL` and `GITLAB_TOKEN` are correct
-- **Solution**: Check network connectivity
+### Email Sending Fails
 
-**Issue**: Email sending fails
+- Verify SMTP credentials
+- For Gmail, use App Password (not regular password)
+- Check firewall rules for SMTP port (587 or 465)
+- Verify `SMTP_HOST` and `SMTP_PORT` are correct
 
-- **Solution**: Verify SMTP credentials
-- **Solution**: Check firewall rules for SMTP port
-- **Solution**: For Gmail, use App Password instead of regular password
+### Dashboard Not Accessible
 
-**Issue**: Dashboard not accessible
-
-- **Solution**: Verify port is exposed (default: 8000)
-- **Solution**: Check firewall rules
-- **Solution**: Verify `WEBHOOK_PORT` environment variable matches exposed port
+- Verify port is exposed (default: 8000)
+- Check `WEBHOOK_PORT` matches exposed port
+- Check firewall rules
+- Verify container is running: `docker-compose ps`
 
 ### Debugging
 
 1. **View logs:**
-
    ```bash
-   # Using Docker Compose
    docker-compose logs -f
-   
-   # Using Docker directly
-   docker logs -f gitlab-analyzer
    ```
 
 2. **Execute commands in container:**
-
    ```bash
-   # Using Docker Compose
-   docker-compose exec gitlab-analyzer /bin/bash
-   
-   # Using Docker directly
-   docker exec -it gitlab-analyzer /bin/bash
+   docker-compose exec gitlab-issues-analyzer /bin/bash
    ```
 
 3. **Test configuration:**
    ```bash
-   docker run --rm --env-file .env gitlab-issues-analyzer:latest python3 -c "from src.config import load_config, validate_config; config = load_config(); validate_config(config); print('✓ Config valid')"
+   docker run --rm --env-file .env gitlab-issues-analyzer:latest \
+     python3 -c "from src.config import load_config, validate_config; \
+     config = load_config(); validate_config(config); print('✓ Config valid')"
    ```
 
 4. **Check dashboard:**
-   - Open browser to `http://localhost:8000` (or configured port)
-   - View statistics and configuration
-   - Test manual trigger
+   - Open `http://localhost:8000` in browser
+   - View statistics and test manual trigger
 
 ## Best Practices
 
-1. **Security**:
+### Security
 
-   - Use secrets management (Docker secrets, Kubernetes secrets, etc.)
-   - Never commit credentials to version control
-   - Use non-root user in containers
-   - Enable TLS/SSL for SMTP
+1. **Use secrets management** (Docker secrets, Kubernetes secrets, etc.)
+2. **Never commit `.env` files** to version control
+3. **Use non-root user** in containers (already configured)
+4. **Enable TLS/SSL** for SMTP
 
-2. **Monitoring**:
+### Monitoring
 
-   - Set up log aggregation
-   - Monitor container health
-   - Set up alerts for failures
+1. **Set up log aggregation** for production
+2. **Monitor container health** via health checks
+3. **Set up alerts** for failures
+4. **Monitor API usage** and costs
 
-3. **Backup**:
+### Backup
 
-   - Backup `data/analysis_cache.json` (contains processed issues and analysis results)
-   - Keep `.env` file backups (securely stored)
-   - Document deployment procedures
+1. **Backup `data/analysis_cache.json`** (contains processed issues and analysis results)
+2. **Keep `.env` backups** (securely stored, never in version control)
+3. **Document deployment procedures**
 
-4. **Updates**:
-   - Use version tags for Docker images
-   - Test updates in staging first
-   - Have rollback procedures ready
+### Updates
 
----
+1. **Use version tags** for Docker images
+2. **Test updates** in staging first
+3. **Have rollback procedures** ready
+4. **Review changelog** before updating
 
-**Last Updated**: See document header for last update date.
+## Platform-Specific Deployment
 
-**Documentation Version**: 1.0
+### Docker on Linux/Mac/Windows
+
+Follow the standard Docker deployment instructions above. Works identically across platforms.
+
+### Cloud Platforms
+
+The application can be deployed to any platform that supports Docker:
+
+- **AWS ECS/Fargate**: Use Docker image
+- **Google Cloud Run**: Use Docker image
+- **Azure Container Instances**: Use Docker image
+- **DigitalOcean App Platform**: Use Docker image
+- **Heroku**: Use Docker buildpack
+
+### Kubernetes
+
+Deploy using standard Kubernetes manifests:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gitlab-issues-analyzer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gitlab-issues-analyzer
+  template:
+    metadata:
+      labels:
+        app: gitlab-issues-analyzer
+    spec:
+      containers:
+      - name: analyzer
+        image: gitlab-issues-analyzer:latest
+        envFrom:
+        - secretRef:
+            name: gitlab-analyzer-secrets
+        ports:
+        - containerPort: 8000
+```
+
+## Next Steps
+
+After deployment:
+
+1. Verify health endpoint responds
+2. Test manual trigger via dashboard
+3. Monitor logs for first few issue analyses
+4. Set up monitoring and alerts
+5. Configure backups
