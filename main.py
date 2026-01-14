@@ -520,25 +520,24 @@ def run_polling_mode(poll_interval: int) -> None:
                 if not (normalized_time.endswith("Z") or ("+" in normalized_time[-6:] or "-" in normalized_time[-6:])):
                     normalized_time += "Z"
                 created_after = normalized_time
-                logger.info(f"👉 Start time to filter issues: {created_after}")
             else:
                 created_after = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
-                logger.info(f"👉 Start time to filter issues: {created_after}")
             
             # Format timestamp for display in configured timezone
-            if created_after:
-                try:
-                    time_str = created_after.replace("Z", "+00:00")
-                    dt_utc = datetime.fromisoformat(time_str)
-                    timezone_str = config.get("app", {}).get("timezone", "Asia/Ho_Chi_Minh")
-                    tz = pytz.timezone(timezone_str)
-                    if dt_utc.tzinfo is None:
-                        dt_utc = pytz.UTC.localize(dt_utc)
-                    dt_local = dt_utc.astimezone(tz)
-                    formatted_time = dt_local.strftime("%Y-%m-%d %H:%M:%S")
-                    logger.debug(f"👉 Filtering issues created after: {formatted_time}")
-                except Exception as e:
-                    logger.debug(f"👉 Filtering issues created after: {created_after}")
+            formatted_time = created_after
+            try:
+                time_str = created_after.replace("Z", "+00:00")
+                dt_utc = datetime.fromisoformat(time_str)
+                timezone_str = config.get("app", {}).get("timezone", "Asia/Ho_Chi_Minh")
+                tz = pytz.timezone(timezone_str)
+                if dt_utc.tzinfo is None:
+                    dt_utc = pytz.UTC.localize(dt_utc)
+                dt_local = dt_utc.astimezone(tz)
+                formatted_time = dt_local.strftime("%Y-%m-%d %H:%M:%S")
+            except Exception as e:
+                logger.debug(f"Failed to format timestamp: {e}")
+            
+            logger.info(f"👉 Start time to filter issues: {formatted_time}")
 
             new_issues = monitor.poll_issues(
                 state="opened",
