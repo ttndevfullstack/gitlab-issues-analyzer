@@ -874,6 +874,17 @@ NHẮC LẠI YÊU CẦU:
                 logger.info(
                     f"✅ AI API request successful, response keys: {list(response_data.keys())}"
                 )
+                
+                # Log token usage if available
+                if "usage" in response_data:
+                    usage = response_data["usage"]
+                    prompt_tokens = usage.get("prompt_tokens", 0)
+                    completion_tokens = usage.get("completion_tokens", 0)
+                    total_tokens = usage.get("total_tokens", 0)
+                    logger.info(
+                        f"✅ Token usage: prompt={prompt_tokens}, completion={completion_tokens}, total={total_tokens}"
+                    )
+                
                 return response_data
 
             except Timeout as e:
