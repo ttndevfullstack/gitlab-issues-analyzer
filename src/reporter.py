@@ -170,6 +170,10 @@ FIXED_HTML_TEMPLATE = """<div class="rcmBody" id="message-htmlpart1" style="marg
                                 <span style="display: inline-block; background-color: #f39c12; color: #ffffff; padding: 4px 12px; border-radius: 16px; font-size: 12px;">{ISSUE_PRIORITY}</span>
                             </div>
                             <div style="margin-bottom: 8px">
+                                <span style="font-weight: 600; color: #555; margin-right: 8px">Estimation:</span>
+                                <span style="display: inline-block; background-color: #9b59b6; color: #ffffff; padding: 4px 12px; border-radius: 16px; font-size: 12px;">{ESTIMATION}</span>
+                            </div>
+                            <div style="margin-bottom: 8px">
                                 <span style="font-weight: 600; color: #555; margin-right: 8px">Labels:</span>
                                 {ISSUE_LABELS}
                             </div>
@@ -381,6 +385,7 @@ def get_fixed_html_template(issue_data: Dict[str, Any]) -> str:
     template = template.replace("{ISSUE_STATE}", html.escape(str(state)))
     template = template.replace("{ISSUE_STATE_COLOR}", status_color)
     template = template.replace("{ISSUE_PRIORITY}", html.escape(str(priority)))
+    template = template.replace("{ESTIMATION}", "{{ESTIMATION}}")  # Placeholder for AI to fill
     template = template.replace("{ISSUE_LABELS}", labels_html)  # Already HTML formatted
     template = template.replace("{ISSUE_URL}", html.escape(url))
     template = template.replace("{ISSUE_AUTHOR}", html.escape(author_str))

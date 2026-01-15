@@ -464,6 +464,150 @@
         .card-header h2 {
             margin: 0;
         }
+        
+        .filters-section {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .filters-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .filters-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin: 0;
+        }
+        
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .filter-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #555;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .filter-input,
+        .filter-select {
+            padding: 10px 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.2s;
+            background: white;
+            color: #333;
+        }
+        
+        .filter-input:focus,
+        .filter-select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .filter-input::placeholder {
+            color: #999;
+        }
+        
+        .filter-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .btn-filter {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-filter:hover {
+            background: #5568d3;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-filter-secondary {
+            background: #6c757d;
+        }
+        
+        .btn-filter-secondary:hover {
+            background: #5a6268;
+        }
+        
+        .results-info {
+            font-size: 14px;
+            color: #666;
+            padding: 12px 0;
+            border-top: 1px solid #e9ecef;
+            margin-top: 15px;
+        }
+        
+        .results-count {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .no-results {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+        
+        .no-results-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .filters-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .filters-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .filter-actions {
+                width: 100%;
+            }
+            
+            .btn-filter {
+                flex: 1;
+            }
+        }
     </style>
 </head>
 <body>
@@ -508,12 +652,59 @@
                     Clear All
                 </button>
             </div>
+            
+            <div class="filters-section" id="filtersSection" style="display: none;">
+                <div class="filters-grid">
+                    <div class="filter-group">
+                        <label class="filter-label" for="searchInput">Search</label>
+                        <input 
+                            type="text" 
+                            id="searchInput" 
+                            class="filter-input" 
+                            placeholder="Search by title or issue ID..."
+                            oninput="applyFilters()"
+                        >
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label" for="stateFilter">State</label>
+                        <select id="stateFilter" class="filter-select" onchange="applyFilters()">
+                            <option value="">All States</option>
+                            <option value="opened">Opened</option>
+                            <option value="closed">Closed</option>
+                            <option value="unknown">Unknown</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label" for="statusFilter">Status</label>
+                        <select id="statusFilter" class="filter-select" onchange="applyFilters()">
+                            <option value="">All Statuses</option>
+                            <option value="success">Success</option>
+                            <option value="error">Error</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label" for="labelFilter">Label</label>
+                        <select id="labelFilter" class="filter-select" onchange="applyFilters()">
+                            <option value="">All Labels</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="results-info">
+                    Showing <span class="results-count" id="resultsCount">0</span> of <span id="totalCount">0</span> issues
+                </div>
+            </div>
+            
             <div id="loading" class="loading">Loading issues...</div>
             <div id="error" class="error" style="display: none;"></div>
             <div id="empty" class="empty" style="display: none;">
                 <div class="empty-icon">📭</div>
                 <h3>No processed issues found</h3>
                 <p>Issues will appear here after they are analyzed.</p>
+            </div>
+            <div id="noResults" class="no-results" style="display: none;">
+                <div class="no-results-icon">🔍</div>
+                <h3>No issues match your filters</h3>
+                <p>Try adjusting your search or filter criteria.</p>
             </div>
             <table class="issues-table" id="issuesTable" style="display: none;">
                 <thead>
@@ -535,6 +726,9 @@
     <script>
         // Label color mapping passed from Python (reporter.py)
         const LABEL_COLORS = {{ label_colors | tojson }};
+        
+        // Store all issues for filtering
+        let allIssues = [];
 
         function getLabelColor(labelName) {
             const color = LABEL_COLORS[labelName];
@@ -562,38 +756,120 @@
             // Use black text for light backgrounds, white for dark
             return brightness > 128 ? "#000000" : "#ffffff";
         }
-
-        async function loadIssues() {
-            const loading = document.getElementById('loading');
-            const error = document.getElementById('error');
+        
+        function populateLabelFilter(issues) {
+            const labelFilter = document.getElementById('labelFilter');
+            const labelSet = new Set();
+            
+            issues.forEach(issue => {
+                if (issue.labels && issue.labels.length > 0) {
+                    issue.labels.forEach(label => {
+                        const labelName = typeof label === 'string' ? label : label.name || label;
+                        if (labelName) {
+                            labelSet.add(labelName);
+                        }
+                    });
+                }
+            });
+            
+            // Clear existing options except "All Labels"
+            labelFilter.innerHTML = '<option value="">All Labels</option>';
+            
+            // Sort labels alphabetically and add to dropdown
+            Array.from(labelSet).sort().forEach(labelName => {
+                const option = document.createElement('option');
+                option.value = labelName;
+                option.textContent = labelName;
+                labelFilter.appendChild(option);
+            });
+        }
+        
+        function applyFilters() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+            const stateFilter = document.getElementById('stateFilter').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+            const labelFilter = document.getElementById('labelFilter').value;
+            
+            const filteredIssues = allIssues.filter(issue => {
+                // Search filter (title or issue ID)
+                if (searchTerm) {
+                    const titleMatch = (issue.title || '').toLowerCase().includes(searchTerm);
+                    const idMatch = String(issue.issue_iid || issue.issue_id || '').includes(searchTerm);
+                    if (!titleMatch && !idMatch) {
+                        return false;
+                    }
+                }
+                
+                // State filter
+                if (stateFilter && issue.state !== stateFilter) {
+                    return false;
+                }
+                
+                // Status filter
+                if (statusFilter) {
+                    if (statusFilter === 'error' && !issue.has_error) {
+                        return false;
+                    }
+                    if (statusFilter === 'success' && issue.has_error) {
+                        return false;
+                    }
+                }
+                
+                // Label filter
+                if (labelFilter) {
+                    const hasLabel = issue.labels && issue.labels.some(label => {
+                        const labelName = typeof label === 'string' ? label : label.name || label;
+                        return labelName === labelFilter;
+                    });
+                    if (!hasLabel) {
+                        return false;
+                    }
+                }
+                
+                return true;
+            });
+            
+            displayIssues(filteredIssues);
+            updateResultsCount(filteredIssues.length, allIssues.length);
+        }
+        
+        function clearFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('stateFilter').value = '';
+            document.getElementById('statusFilter').value = '';
+            document.getElementById('labelFilter').value = '';
+            applyFilters();
+        }
+        
+        function updateResultsCount(filtered, total) {
+            document.getElementById('resultsCount').textContent = filtered;
+            document.getElementById('totalCount').textContent = total;
+        }
+        
+        function displayIssues(issues) {
             const empty = document.getElementById('empty');
+            const noResults = document.getElementById('noResults');
             const table = document.getElementById('issuesTable');
             const tbody = document.getElementById('issuesTableBody');
             
-            try {
-                const response = await fetch('/api/issues');
-                const data = await response.json();
-                
-                loading.style.display = 'none';
-                error.style.display = 'none';
-                
-                if (!data.issues || data.issues.length === 0) {
+            if (issues.length === 0) {
+                if (allIssues.length === 0) {
                     empty.style.display = 'block';
-                    table.style.display = 'none';
-                    return;
+                    noResults.style.display = 'none';
+                } else {
+                    empty.style.display = 'none';
+                    noResults.style.display = 'block';
                 }
-                
-                empty.style.display = 'none';
-                table.style.display = 'table';
-                
-                // Show/hide clear all button based on whether there are issues
-                const clearAllBtn = document.getElementById('clearAllBtn');
-                if (clearAllBtn) {
-                    clearAllBtn.style.display = data.issues && data.issues.length > 0 ? 'block' : 'none';
-                }
-                
-                tbody.innerHTML = '';
-                data.issues.forEach(issue => {
+                table.style.display = 'none';
+                return;
+            }
+            
+            empty.style.display = 'none';
+            noResults.style.display = 'none';
+            table.style.display = 'table';
+            
+            tbody.innerHTML = '';
+            issues.forEach(issue => {
                     const row = document.createElement('tr');
                     
                     const stateClass = issue.state === 'opened' ? 'opened' : 
@@ -657,12 +933,55 @@
                     `;
                     tbody.appendChild(row);
                 });
+        }
+
+        async function loadIssues() {
+            const loading = document.getElementById('loading');
+            const error = document.getElementById('error');
+            const empty = document.getElementById('empty');
+            const filtersSection = document.getElementById('filtersSection');
+            const table = document.getElementById('issuesTable');
+            
+            try {
+                const response = await fetch('/api/issues');
+                const data = await response.json();
+                
+                loading.style.display = 'none';
+                error.style.display = 'none';
+                
+                if (!data.issues || data.issues.length === 0) {
+                    empty.style.display = 'block';
+                    table.style.display = 'none';
+                    filtersSection.style.display = 'none';
+                    allIssues = [];
+                    return;
+                }
+                
+                // Store all issues
+                allIssues = data.issues;
+                
+                // Show filters section
+                filtersSection.style.display = 'block';
+                
+                // Populate label filter dropdown
+                populateLabelFilter(allIssues);
+                
+                // Show/hide clear all button based on whether there are issues
+                const clearAllBtn = document.getElementById('clearAllBtn');
+                if (clearAllBtn) {
+                    clearAllBtn.style.display = allIssues.length > 0 ? 'block' : 'none';
+                }
+                
+                // Apply filters (will display all issues initially)
+                applyFilters();
             } catch (err) {
                 loading.style.display = 'none';
                 error.style.display = 'block';
                 error.textContent = `Error loading issues: ${err.message}`;
                 table.style.display = 'none';
                 empty.style.display = 'none';
+                filtersSection.style.display = 'none';
+                allIssues = [];
             }
         }
         

@@ -135,36 +135,60 @@
             font-weight: 600;
         }
         
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 12px;
+        }
+        
+        .card-header h2 {
+            margin: 0;
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+        
+        .card-header-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        
         .issue-info {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
             margin-top: 16px;
         }
         
         .info-item {
             display: flex;
-            flex-direction: column;
-            padding: 12px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            border-left: 3px solid #667eea;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .info-item:last-child {
+            border-bottom: none;
         }
         
         .info-item label {
-            font-size: 12px;
+            font-size: 14px;
             color: #666;
-            text-transform: uppercase;
             font-weight: 600;
-            letter-spacing: 0.5px;
-            margin-bottom: 6px;
+            min-width: 120px;
+            flex-shrink: 0;
         }
         
         .info-item value {
             font-size: 14px;
             color: #333;
-            font-weight: 500;
+            font-weight: 400;
             word-break: break-word;
+            flex: 1;
         }
         
         .info-item value.badge {
@@ -174,6 +198,7 @@
             font-size: 12px;
             font-weight: 600;
             width: fit-content;
+            flex: 0 0 auto;
         }
         
         .info-item value.badge.enabled {
@@ -192,34 +217,33 @@
             text-decoration: underline;
         }
         
-        .actions {
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-            margin-top: 20px;
-        }
-        
         .btn {
-            padding: 12px 24px;
+            padding: 8px 16px;
             border: none;
-            border-radius: 8px;
+            border-radius: 6px;
             font-weight: 600;
-            font-size: 15px;
+            font-size: 13px;
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: all 0.2s ease;
             text-decoration: none;
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
         
         .btn-primary {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
         }
         
         .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-primary:active {
+            transform: translateY(0);
         }
         
         .btn-secondary {
@@ -229,6 +253,12 @@
         
         .btn-secondary:hover {
             background: #5a6268;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(108, 117, 125, 0.3);
+        }
+        
+        .btn-secondary:active {
+            transform: translateY(0);
         }
         
         .btn-success {
@@ -238,6 +268,37 @@
         
         .btn-success:hover {
             background: #218838;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+        }
+        
+        .btn-success:active {
+            transform: translateY(0);
+        }
+        
+        .action-status {
+            margin-top: 16px;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .action-status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .action-status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .action-status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
         }
         
         .btn:disabled {
@@ -332,20 +393,18 @@
         
         <div id="content" style="display: none;">
             <div class="card">
-                <h2>Issue Information</h2>
+                <div class="card-header">
+                    <h2>Issue Information</h2>
+                    <div class="card-header-actions">
+                        <button class="btn btn-primary" onclick="reanalyze()">Reanalyze</button>
+                        <button class="btn btn-secondary" onclick="resend()">Resend</button>
+                        <button class="btn btn-success" onclick="reanalyzeAndResend()">Reanalyze & Resend</button>
+                    </div>
+                </div>
+                <div id="actionStatus" style="display: none;"></div>
                 <a href="#" id="issueUrlLink" class="issue-url-link" target="_blank" style="display: none;"></a>
                 <div class="issue-info" id="issueInfo">
                 </div>
-            </div>
-            
-            <div class="card">
-                <h2>Actions</h2>
-                <div class="actions">
-                    <button class="btn btn-primary" onclick="reanalyze()">Reanalyze (No Email)</button>
-                    <button class="btn btn-secondary" onclick="resend()">Resend Email</button>
-                    <button class="btn btn-success" onclick="reanalyzeAndResend()">Reanalyze & Resend</button>
-                </div>
-                <div id="actionStatus"></div>
             </div>
             
             <div class="card">
@@ -417,7 +476,7 @@
                 issueInfo.innerHTML = `
                     <div class="info-item">
                         <label>Issue ID</label>
-                        <value>#${data.issue_iid || issueId}</value>
+                        <value><strong>#${data.issue_iid || issueId}</strong></value>
                     </div>
                     <div class="info-item">
                         <label>Title</label>
@@ -429,7 +488,7 @@
                     </div>
                     <div class="info-item">
                         <label>Project ID</label>
-                        <value>${issueData.project_id || 'N/A'}</value>
+                        <value><strong>${issueData.project_id || 'N/A'}</strong></value>
                     </div>
                 `;
                 
@@ -455,7 +514,8 @@
         
         async function reanalyze() {
             const statusDiv = document.getElementById('actionStatus');
-            statusDiv.innerHTML = '<div class="status">Reanalyzing...</div>';
+            statusDiv.innerHTML = '<div class="action-status info">Reanalyzing...</div>';
+            statusDiv.style.display = 'block';
             
             try {
                 const response = await fetch(`/api/issues/${issueId}/reanalyze`, {
@@ -465,20 +525,21 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    statusDiv.innerHTML = '<div class="status success">Reanalysis completed successfully!</div>';
+                    statusDiv.innerHTML = '<div class="action-status success">Reanalysis completed successfully!</div>';
                     // Reload issue details after a short delay
                     setTimeout(loadIssueDetails, 1000);
                 } else {
-                    statusDiv.innerHTML = `<div class="status error">Error: ${data.error || 'Reanalysis failed'}</div>`;
+                    statusDiv.innerHTML = `<div class="action-status error">Error: ${data.error || 'Reanalysis failed'}</div>`;
                 }
             } catch (err) {
-                statusDiv.innerHTML = `<div class="status error">Error: ${err.message}</div>`;
+                statusDiv.innerHTML = `<div class="action-status error">Error: ${err.message}</div>`;
             }
         }
         
         async function resend() {
             const statusDiv = document.getElementById('actionStatus');
-            statusDiv.innerHTML = '<div class="status">Resending email...</div>';
+            statusDiv.innerHTML = '<div class="action-status info">Resending email...</div>';
+            statusDiv.style.display = 'block';
             
             try {
                 const response = await fetch(`/api/issues/${issueId}/resend`, {
@@ -488,18 +549,19 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    statusDiv.innerHTML = '<div class="status success">Email sent successfully!</div>';
+                    statusDiv.innerHTML = '<div class="action-status success">Email sent successfully!</div>';
                 } else {
-                    statusDiv.innerHTML = `<div class="status error">Error: ${data.error || 'Failed to send email'}</div>`;
+                    statusDiv.innerHTML = `<div class="action-status error">Error: ${data.error || 'Failed to send email'}</div>`;
                 }
             } catch (err) {
-                statusDiv.innerHTML = `<div class="status error">Error: ${err.message}</div>`;
+                statusDiv.innerHTML = `<div class="action-status error">Error: ${err.message}</div>`;
             }
         }
         
         async function reanalyzeAndResend() {
             const statusDiv = document.getElementById('actionStatus');
-            statusDiv.innerHTML = '<div class="status">Reanalyzing and sending email...</div>';
+            statusDiv.innerHTML = '<div class="action-status info">Reanalyzing and sending email...</div>';
+            statusDiv.style.display = 'block';
             
             try {
                 const response = await fetch(`/api/issues/${issueId}/reanalyze-and-resend`, {
@@ -509,14 +571,14 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    statusDiv.innerHTML = '<div class="status success">Reanalysis completed and email sent successfully!</div>';
+                    statusDiv.innerHTML = '<div class="action-status success">Reanalysis completed and email sent successfully!</div>';
                     // Reload issue details after a short delay
                     setTimeout(loadIssueDetails, 1000);
                 } else {
-                    statusDiv.innerHTML = `<div class="status error">Error: ${data.error || 'Operation failed'}</div>`;
+                    statusDiv.innerHTML = `<div class="action-status error">Error: ${data.error || 'Operation failed'}</div>`;
                 }
             } catch (err) {
-                statusDiv.innerHTML = `<div class="status error">Error: ${err.message}</div>`;
+                statusDiv.innerHTML = `<div class="action-status error">Error: ${err.message}</div>`;
             }
         }
         

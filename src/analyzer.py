@@ -434,6 +434,11 @@ Trong phân tích, bắt buộc phải làm rõ:
 
 6. Trình bày rõ ràng, dễ hiểu để cả team và khách hàng cùng nắm bắt.
 
+7. Ước lượng (Estimation): Phải đưa ra ước lượng Story Points cho ticket này.
+   - Sử dụng dãy số Fibonacci: 1, 2, 3, 5, 8, 13, 21, 34, 55, 89
+   - Quy ước: 8 Story Points = 1 tuần làm việc
+   - Xem xét độ phức tạp, rủi ro, và phạm vi công việc để đưa ra ước lượng chính xác
+
 
 
 ────────────────────────────────
@@ -471,6 +476,7 @@ KHÔNG được tạo HTML mới, KHÔNG được thay đổi cấu trúc templa
 
 CHỈ được thay thế các placeholder sau bằng nội dung thực tế:
 
+- {{ESTIMATION}}: Ước lượng Story Points (ví dụ: "3 Story Points (~ 2 ngày), 5 Story Points (~ 3 ngày), 8 Story Points (~ 1 tuần)")
 - {{TLDR_ITEMS}}: Danh sách <li> cho TL;DR (>5 bullet points)
 - {{ACTION_ITEMS}}: Danh sách <li> cho Action Items
 - {{OPEN_QUESTIONS}}: Danh sách <li> cho Open Questions (hoặc "Không có câu hỏi cần xác nhận")
@@ -485,7 +491,9 @@ CHỈ được thay thế các placeholder sau bằng nội dung thực tế:
 
 6.1. Yêu cầu điền template:
 
-- Mỗi placeholder PHẢI được thay thế bằng danh sách <li>...</li> hợp lệ
+- Mỗi placeholder PHẢI được thay thế bằng nội dung thực tế
+- Đối với {{ESTIMATION}}: Điền Story Points theo dãy Fibonacci (1, 2, 3, 5, 8, 13, 21, 34, 55, 89) và quy đổi sang ngày hoặc 1 tuần (8 points = 1 tuần). Ví dụ: 3 Story Points (~ 2 ngày), 5 Story Points (~ 4 ngày), 8 Story Points (~ 1 tuầntuần)"
+- Đối với các placeholder khác: PHẢI được thay thế bằng danh sách <li>...</li> hợp lệ
 - Mỗi <li> phải chứa nội dung phân tích cụ thể, không được để trống
 - Nếu một section không có nội dung, vẫn phải có ít nhất 1 <li> với nội dung "Chưa có nội dung" hoặc tương tự
 - TẤT CẢ nội dung trong <li> phải được escape HTML đúng cách (không chứa HTML không hợp lệ)

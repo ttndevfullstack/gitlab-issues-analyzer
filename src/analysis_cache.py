@@ -268,6 +268,33 @@ class AnalysisCache:
             return True
         return False
 
+    def update_issue_state(
+        self, issue_id: int, state: str, updated_at: Optional[str] = None
+    ) -> bool:
+        """
+        Update the state of an issue in the cache.
+
+        Args:
+            issue_id: GitLab issue ID
+            state: New state value ('opened', 'closed', etc.)
+            updated_at: Optional updated_at timestamp
+
+        Returns:
+            True if issue was found and updated, False otherwise
+        """
+        cache_key = self._get_cache_key(issue_id)
+        if cache_key in self.cache:
+            # Update state in issue_data
+            if "issue_data" not in self.cache[cache_key]:
+                self.cache[cache_key]["issue_data"] = {}
+            self.cache[cache_key]["issue_data"]["state"] = state
+            if updated_at:
+                self.cache[cache_key]["issue_data"]["updated_at"] = updated_at
+            self._save_cache()
+            logger.debug(f"Updated state for issue {issue_id} to {state}")
+            return True
+        return False
+
     def clear(self) -> None:
         """Clear all cached analyses."""
         self.cache.clear()

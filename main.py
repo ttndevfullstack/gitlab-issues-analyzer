@@ -937,15 +937,74 @@ def trigger_analysis():
 @app.route("/api/issues", methods=["GET"])
 def list_processed_issues():
     """
-    List all processed issues.
+    List all processed issues with latest state from GitLab.
+
+    Fetches the current state of each issue from GitLab and updates the cache.
 
     Returns:
-        JSON response with list of processed issues
+        JSON response with list of processed issues with updated states
     """
     try:
         if not analysis_cache:
             return jsonify({"error": "Analysis cache not initialized"}), 503
 
+        if not gitlab_client:
+            return jsonify({"error": "GitLab client not initialized"}), 503
+
+        # Get all cached issues
+        issues = analysis_cache.get_all_issues()
+        
+        # Update states from GitLab for each issue
+        updated_count = 0
+        for issue in issues:
+            issue_iid = issue.get("issue_iid")
+            issue_id = issue.get("issue_id")
+            project_id = issue.get("project_id")
+            
+            # Skip if we don't have required info to fetch from GitLab
+            if not issue_iid or not project_id:
+                continue
+            
+            try:
+                # Fetch latest issue data from GitLab
+                latest_issue = gitlab_client.get_issue(issue_iid, project_id=project_id)
+                latest_state = latest_issue.get("state")
+                latest_updated_at = latest_issue.get("updated_at")
+                
+                # Update cache if state changed
+                if latest_state and latest_state != issue.get("state"):
+                    analysis_cache.update_issue_state(
+                        issue_id, latest_state, latest_updated_at
+                    )
+                    # Update the issue in our list
+                    issue["state"] = latest_state
+                    if latest_updated_at:
+                        issue["updated_at"] = latest_updated_at
+                    updated_count += 1
+                elif latest_state:
+                    # State is the same, but update updated_at if available
+                    if latest_updated_at and latest_updated_at != issue.get("updated_at"):
+                        analysis_cache.update_issue_state(
+                            issue_id, latest_state, latest_updated_at
+                        )
+                        issue["updated_at"] = latest_updated_at
+            except GitLabAPIError as e:
+                # Log error but continue with other issues
+                logger.warning(
+                    f"⚠️ Failed to fetch latest state for issue #{issue_iid} (ID: {issue_id}): {e}"
+                )
+                continue
+            except Exception as e:
+                # Log unexpected errors but continue
+                logger.warning(
+                    f"⚠️ Unexpected error fetching state for issue #{issue_iid} (ID: {issue_id}): {e}"
+                )
+                continue
+        
+        if updated_count > 0:
+            logger.debug(f"✅ Updated state for {updated_count} issue(s)")
+        
+        # Get updated issues list from cache
         issues = analysis_cache.get_all_issues()
         return jsonify({"issues": issues, "count": len(issues)}), 200
     except Exception as e:
@@ -957,6 +1016,7 @@ def list_processed_issues():
 def get_issue_details(issue_id: int):
     """
     Get details of a processed issue including analysis and email report.
+    Updates issue state from GitLab before returning.
 
     Args:
         issue_id: GitLab issue ID
@@ -971,6 +1031,45 @@ def get_issue_details(issue_id: int):
         cached_data = analysis_cache.get_issue_with_report(issue_id)
         if not cached_data:
             return jsonify({"error": f"Issue {issue_id} not found in cache"}), 404
+
+        # Update state from GitLab if we have the required info
+        issue_data = cached_data.get("issue_data", {})
+        issue_iid = cached_data.get("issue_iid")
+        project_id = issue_data.get("project_id")
+        
+        if gitlab_client and issue_iid and project_id:
+            try:
+                # Fetch latest issue data from GitLab
+                latest_issue = gitlab_client.get_issue(issue_iid, project_id=project_id)
+                latest_state = latest_issue.get("state")
+                latest_updated_at = latest_issue.get("updated_at")
+                
+                # Update cache if state changed
+                if latest_state and latest_state != issue_data.get("state"):
+                    analysis_cache.update_issue_state(
+                        issue_id, latest_state, latest_updated_at
+                    )
+                    # Update the cached_data with new state
+                    issue_data["state"] = latest_state
+                    if latest_updated_at:
+                        issue_data["updated_at"] = latest_updated_at
+                elif latest_state and latest_updated_at:
+                    # Update updated_at even if state is the same
+                    if latest_updated_at != issue_data.get("updated_at"):
+                        analysis_cache.update_issue_state(
+                            issue_id, latest_state, latest_updated_at
+                        )
+                        issue_data["updated_at"] = latest_updated_at
+            except GitLabAPIError as e:
+                # Log warning but continue with cached data
+                logger.warning(
+                    f"⚠️ Failed to fetch latest state for issue #{issue_iid} (ID: {issue_id}): {e}"
+                )
+            except Exception as e:
+                # Log unexpected errors but continue
+                logger.warning(
+                    f"⚠️ Unexpected error fetching state for issue #{issue_iid} (ID: {issue_id}): {e}"
+                )
 
         return jsonify(cached_data), 200
     except Exception as e:
