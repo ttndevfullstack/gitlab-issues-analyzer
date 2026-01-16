@@ -28,8 +28,7 @@ ENV/
 
 # Configuration files with secrets
 config.json
-*.env
-.env*
+.env
 secrets/
 *.secret
 
