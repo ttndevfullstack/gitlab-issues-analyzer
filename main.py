@@ -248,7 +248,6 @@ def process_issue(
             )
             analysis = cached_data.get("analysis", {})
             report = cached_data.get("email_report", {})
-            # Use cached issue_data merged with basic data
             issue_data = {**basic_issue_data, **cached_data.get("issue_data", {})}
         else:
             if skip_cache:
@@ -270,12 +269,11 @@ def process_issue(
             try:
                 analysis = analyzer.analyze_issue(issue_data, gitlab_url=gitlab_url)
             except AnalysisError as e:
-                # Store error in cache for UI display
                 error_message = str(e)
                 if issue_id and analysis_cache:
                     analysis_cache.set(
                         issue_id,
-                        {},  # Empty analysis
+                        {},
                         issue_iid,
                         issue_data,
                         email_report=None,
@@ -283,7 +281,6 @@ def process_issue(
                     )
                 raise
 
-            # Generate email report
             subject_prefix = config["smtp"].get("subject_prefix", "[GitLab Issue Analysis]")
             report = generate_email_report(issue_data, analysis, subject_prefix)
 
@@ -293,25 +290,23 @@ def process_issue(
                     issue_id, analysis, issue_iid, issue_data, email_report=report, error=None
                 )
 
-        # Send email (non-blocking - mark as processed even if email fails)
-        # Use custom to_email if provided, otherwise use default from config
-        email_recipients = to_email if to_email is not None else config["smtp"]["to_email"]
-        if isinstance(email_recipients, str):
-            email_recipients = [email_recipients]
+            email_recipients = to_email if to_email is not None else config["smtp"]["to_email"]
+            if isinstance(email_recipients, str):
+                email_recipients = [email_recipients]
 
-        try:
-            logger.info(f"👉 Sending email for issue #{issue_iid} to {email_recipients}")
-            email_sender.send_email(
-                to=email_recipients,
-                subject=report["subject"],
-                body=report["text"],
-                html_body=report["html"],
-            )
-            logger.info(f"✅ Email sent successfully for issue #{issue_iid}")
-        except EmailError as e:
-            logger.warning(
-                f"Email failed for issue #{issue_iid}: {e}. Issue will still be marked as processed."
-            )
+            try:
+                logger.info(f"👉 Sending email for issue #{issue_iid} to {email_recipients}")
+                email_sender.send_email(
+                    to=email_recipients,
+                    subject=report["subject"],
+                    body=report["text"],
+                    html_body=report["html"],
+                )
+                logger.info(f"✅ Email sent successfully for issue #{issue_iid}")
+            except EmailError as e:
+                logger.warning(
+                    f"Email failed for issue #{issue_iid}: {e}. Issue will still be marked as processed."
+                )
 
         # Mark as processed (even if email failed)
         if issue_id:
@@ -368,69 +363,54 @@ def process_issue_from_data(
         return False
 
     try:
+        issue_id = issue.get("id")
+
+        if not skip_cache and issue_id and analysis_cache:
+            cached_data = analysis_cache.get_issue_with_report(issue_id, issue_iid)
+            if cached_data:
+                return True
+
         logger.info(f"👉 Processing issue #{issue_iid} from project {project_id}")
 
         if dry_run:
             return True
 
-        # Check cache first (unless skip_cache is True) - we already have issue data with id
-        issue_id = issue.get("id")
-        cached_data = None
-        if not skip_cache and issue_id and analysis_cache:
-            cached_data = analysis_cache.get_issue_with_report(issue_id, issue_iid)
-
-        if cached_data:
+        if skip_cache:
             logger.info(
-                f"👉 Using cached analysis for issue #{issue_iid} (ID: {issue_id})"
+                f"👉 Skipping cache and re-analyzing issue #{issue_iid} (ID: {issue_id})"
             )
-            analysis = cached_data.get("analysis", {})
-            report = cached_data.get("email_report", {})
-            # Use cached issue_data merged with original issue data
-            issue_data = {**issue, **cached_data.get("issue_data", {})}
-        else:
-            if skip_cache:
-                logger.info(
-                    f"👉 Skipping cache and re-analyzing issue #{issue_iid} (ID: {issue_id})"
-                )
-            # Fetch comprehensive issue data (comments, attachments, etc.) for analysis
-            logger.info(f"👉 Fetching comprehensive data for issue #{issue_iid}")
-            comprehensive_data = gitlab_client.fetch_comprehensive_issue_data(
-                issue_iid, project_id=project_id
-            )
-            # Merge with the original issue data to ensure we have all fields
-            issue_data = {**issue, **comprehensive_data}
-            logger.info(f"✅ Fetched comprehensive data for issue #{issue_iid} successfully")
-            
-            # Analyze issue
-            logger.info(f"👉 Analyzing issue #{issue_iid}...")
-            gitlab_url = config.get("gitlab", {}).get("url") if config else None
-            try:
-                analysis = analyzer.analyze_issue(issue_data, gitlab_url=gitlab_url)
-            except AnalysisError as e:
-                # Store error in cache for UI display
-                error_message = str(e)
-                if issue_id and analysis_cache:
-                    analysis_cache.set(
-                        issue_id,
-                        {},  # Empty analysis
-                        issue_iid,
-                        issue_data,
-                        email_report=None,
-                        error=error_message,
-                    )
-                raise
-
-            # Generate email report
-            subject_prefix = config["smtp"].get("subject_prefix", "[GitLab Issue Analysis]")
-            report = generate_email_report(issue_data, analysis, subject_prefix)
-
-            # Cache analysis and email report together (only once, after both are ready)
+        logger.info(f"👉 Fetching comprehensive data for issue #{issue_iid}")
+        comprehensive_data = gitlab_client.fetch_comprehensive_issue_data(
+            issue_iid, project_id=project_id
+        )
+        issue_data = {**issue, **comprehensive_data}
+        logger.info(f"✅ Fetched comprehensive data for issue #{issue_iid} successfully")
+        
+        logger.info(f"👉 Analyzing issue #{issue_iid}...")
+        gitlab_url = config.get("gitlab", {}).get("url") if config else None
+        try:
+            analysis = analyzer.analyze_issue(issue_data, gitlab_url=gitlab_url)
+        except AnalysisError as e:
+            error_message = str(e)
             if issue_id and analysis_cache:
                 analysis_cache.set(
-                    issue_id, analysis, issue_iid, issue_data, email_report=report, error=None
+                    issue_id,
+                    {},
+                    issue_iid,
+                    issue_data,
+                    email_report=None,
+                    error=error_message,
                 )
+            raise
 
-        # Send email (non-blocking - mark as processed even if email fails)
+        subject_prefix = config["smtp"].get("subject_prefix", "[GitLab Issue Analysis]")
+        report = generate_email_report(issue_data, analysis, subject_prefix)
+
+        if issue_id and analysis_cache:
+            analysis_cache.set(
+                issue_id, analysis, issue_iid, issue_data, email_report=report, error=None
+            )
+
         to_email = config["smtp"]["to_email"]
         if isinstance(to_email, str):
             to_email = [to_email]
@@ -449,7 +429,6 @@ def process_issue_from_data(
                 f"Email failed for issue #{issue_iid}: {e}. Issue will still be marked as processed."
             )
 
-        # Mark as processed (even if email failed)
         if issue_id:
             monitor.mark_as_processed(issue_id)
 
