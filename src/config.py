@@ -92,6 +92,7 @@ def _get_default_config() -> Dict[str, Any]:
             "timezone": "Asia/Ho_Chi_Minh",  # Default to Vietnam timezone
             "version": "0.1.0",  # Application version
             "issue_start_time": None,  # ISO 8601 timestamp - issues created after this time will be processed
+            "project_ids": None,  # List of project IDs to filter issues in automation mode (e.g., [31, 32])
         },
     }
 
@@ -197,11 +198,11 @@ def _load_from_environment() -> Dict[str, Any]:
             )
         except ValueError:
             pass
-    if os.getenv("WEBHOOK_PORT"):
+    # Support both PORT and WEBHOOK_PORT for flexibility
+    port_value = os.getenv("PORT") or os.getenv("WEBHOOK_PORT")
+    if port_value:
         try:
-            config.setdefault("app", {})["webhook_port"] = int(
-                os.getenv("WEBHOOK_PORT")
-            )
+            config.setdefault("app", {})["webhook_port"] = int(port_value)
         except ValueError:
             pass
     if os.getenv("WEBHOOK_HOST"):
@@ -251,6 +252,18 @@ def _load_from_environment() -> Dict[str, Any]:
         # Support both APP_VERSION and VERSION for flexibility
         version_value = os.getenv("APP_VERSION") or os.getenv("VERSION")
         config.setdefault("app", {})["version"] = version_value
+    if os.getenv("PROJECT_ID"):
+        # Parse comma-separated project IDs (e.g., "31,32")
+        project_ids_str = os.getenv("PROJECT_ID")
+        if project_ids_str:
+            try:
+                project_ids = [
+                    int(pid.strip()) for pid in project_ids_str.split(",") if pid.strip()
+                ]
+                config.setdefault("app", {})["project_ids"] = project_ids
+            except ValueError:
+                # Invalid format, skip
+                pass
 
     return config
 

@@ -4,7 +4,7 @@ services:
     container_name: gitlab-issues-analyzer
     restart: unless-stopped
     ports:
-      - "${WEBHOOK_PORT:-8000}:8000"
+      - "${PORT:-${WEBHOOK_PORT:-8000}}:${PORT:-${WEBHOOK_PORT:-8000}}"
     # Volumes for development (mounted in docker-compose.dev.yml or docker-compose.override.yml)
     # In production, code is copied into image during build
     volumes:
@@ -37,12 +37,14 @@ services:
       - ENABLE_AUTOMATION=${ENABLE_AUTOMATION:-true}
       - APP_MODE=${APP_MODE:-poll}
       - POLL_INTERVAL=${POLL_INTERVAL:-900}
-      - WEBHOOK_PORT=8000
+      - PORT=${PORT:-${WEBHOOK_PORT:-8000}}
+      - WEBHOOK_PORT=${PORT:-${WEBHOOK_PORT:-8000}}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - MAX_ISSUES_PER_POLL=${MAX_ISSUES_PER_POLL:-}
       - TIMEZONE=${TIMEZONE:-Asia/Ho_Chi_Minh}
       - APP_VERSION=${APP_VERSION:-0.1.0}
       - ISSUE_START_TIME=${ISSUE_START_TIME:-}
+      - PROJECT_ID=${PROJECT_ID:-}
     env_file:
       - .env
     healthcheck:
