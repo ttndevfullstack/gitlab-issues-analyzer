@@ -1,1048 +1,478 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Processed Issues - GitLab Issues Analyzer</title>
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg viewBox='0 0 64 64' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3ClinearGradient id='logoGradient' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%23667eea;stop-opacity:1' /%3E%3Cstop offset='100%25' style='stop-color:%23764ba2;stop-opacity:1' /%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='32' cy='32' r='30' fill='url(%23logoGradient)' opacity='0.1'/%3E%3Cpath d='M32 12 L40 28 L24 28 Z' fill='url(%23logoGradient)'/%3E%3Cpath d='M24 28 L32 44 L16 28 Z' fill='url(%23logoGradient)' opacity='0.8'/%3E%3Cpath d='M40 28 L32 44 L48 28 Z' fill='url(%23logoGradient)' opacity='0.8'/%3E%3Cpath d='M20 40 Q24 36 28 40 T36 40' stroke='url(%23logoGradient)' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3Cpath d='M22 46 Q26 42 30 46 T38 46' stroke='url(%23logoGradient)' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3Crect x='44' y='40' width='12' height='14' rx='1' fill='url(%23logoGradient)' opacity='0.6'/%3E%3Cline x1='47' y1='43' x2='53' y2='43' stroke='white' stroke-width='1.5' stroke-linecap='round'/%3E%3Cline x1='47' y1='46' x2='53' y2='46' stroke='white' stroke-width='1.5' stroke-linecap='round'/%3E%3Cline x1='47' y1='49' x2='51' y2='49' stroke='white' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-        
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-        
-        .header {
-            background: white;
-            border-radius: 16px;
-            padding: 40px;
-            margin-bottom: 30px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-            border: 1px solid rgba(102, 126, 234, 0.1);
-        }
-        
-        .header h1 {
-            color: #333;
-            font-size: 36px;
-            margin-bottom: 12px;
-            font-weight: 700;
-            letter-spacing: -0.5px;
-        }
-        
-        .header p {
-            color: #666;
-            font-size: 17px;
-            font-weight: 400;
-            margin-bottom: 20px;
-        }
-        
-        .nav {
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-            margin-top: 20px;
-        }
-        
-        .nav a {
-            display: inline-block;
-            padding: 12px 24px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            text-decoration: none;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 15px;
-            transition: transform 0.2s, box-shadow 0.2s;
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-        }
-        
-        .nav a:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
-        }
-        
-        .nav a.active {
-            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
-        }
-        
-        .version-badge {
-            display: inline-block;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            letter-spacing: 0.3px;
-            margin-left: 12px;
-            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-            vertical-align: middle;
-        }
-        
-        .logo-container {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-        
-        .logo {
-            width: 56px;
-            height: 56px;
-            flex-shrink: 0;
-        }
-        
-        .logo-title {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-        
-        .logo-title h1 {
-            margin: 0;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        
-        .logo-title p {
-            margin: 0;
-        }
-        
-        .card {
-            background: white;
-            border-radius: 16px;
-            padding: 35px;
-            margin-bottom: 30px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-            border: 1px solid rgba(102, 126, 234, 0.1);
-        }
-        
-        .card h2 {
-            color: #333;
-            font-size: 26px;
-            margin-bottom: 25px;
-            border-bottom: 3px solid #667eea;
-            padding-bottom: 12px;
-            font-weight: 600;
-        }
-        
-        .issues-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        
-        .issues-table th,
-        .issues-table td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #e0e0e0;
-        }
-        
-        .issues-table td:first-child {
-            white-space: nowrap;
-        }
-        
-        .issues-table th {
-            background-color: #f5f5f5;
-            font-weight: 600;
-            color: #333;
-            position: sticky;
-            top: 0;
-        }
-        
-        .issues-table th:nth-child(3),
-        .issues-table td:nth-child(3) {
-            text-align: center;
-        }
-        
-        .issues-table tr:hover {
-            background-color: #f9f9f9;
-        }
-        
-        .issues-table a {
-            color: #667eea;
-            text-decoration: none;
-            font-weight: 600;
-        }
-        
-        .issues-table a:hover {
-            text-decoration: underline;
-        }
-        
-        .badge {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-            min-width: 60px;
-            text-align: center;
-            box-sizing: border-box;
-        }
-        
-        .badge.opened {
-            background-color: #52b87a;
-            color: white;
-        }
-        
-        .badge.closed {
-            background-color: #6c757d;
-            color: white;
-        }
-        
-        .badge.unknown {
-            background-color: #ffc107;
-            color: #333;
-        }
-        
-        .label {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 4px;
-            font-size: 12px;
-            margin-right: 4px;
-            background-color: #e0e0e0;
-            color: #333;
-            min-width: 60px;
-            text-align: center;
-            box-sizing: border-box;
-        }
-        
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #666;
-        }
-        
-        .error {
-            background-color: #f8d7da;
-            color: #721c24;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 20px 0;
-        }
-        
-        .empty {
-            text-align: center;
-            padding: 60px 20px;
-            color: #666;
-        }
-        
-        .empty-icon {
-            font-size: 64px;
-            margin-bottom: 20px;
-        }
-        
-        .btn {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 6px;
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            text-decoration: none;
-            display: inline-block;
-            text-align: center;
-            box-sizing: border-box;
-            line-height: 1.4;
-        }
-        
-        /* Ensure anchor and button elements with .btn class are identical */
-        a.btn,
-        button.btn {
-            padding: 4px 10px;
-            box-sizing: border-box;
-        }
-        
-        .btn-danger {
-            background-color: #e74c3c;
-            color: white;
-        }
-        
-        .btn-danger:hover {
-            background-color: #c0392b;
-            transform: translateY(-1px);
-            box-shadow: 0 2px 8px rgba(231, 76, 60, 0.3);
-        }
-        
-        .btn-clear-all {
-            background-color: #e74c3c;
-            color: white;
-            padding: 10px 20px;
-            font-size: 14px;
-            margin-bottom: 20px;
-        }
-        
-        .btn-clear-all:hover {
-            background-color: #c0392b;
-            transform: translateY(-1px);
-            box-shadow: 0 2px 8px rgba(231, 76, 60, 0.3);
-        }
-        
-        .actions-cell {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-        
-        /* Status button styling with circle, dot, and outline - From Uiverse.io by Zain-Muhammad */
-        .available-for-btn {
-            --animation: 2s ease-in-out infinite;
-            display: inline-flex;
-            align-items: center;
-            column-gap: 6px;
-            border-radius: 100px;
-            padding: 6px 0;
-            outline: none;
-            border: none;
-            font-weight: 600;
-            font-size: 13px;
-            position: relative;
-            transition: 0.2s ease-in-out;
-            cursor: default;
-        }
-        
-        .available-for-btn:hover {
-            opacity: 0.9;
-        }
-        
-        .available-for-btn:active {
-            opacity: 0.8;
-        }
-        
-        .available-for-btn .circle {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            margin: 0 6px;
-            background-color: transparent;
-            animation: circle-keys var(--animation);
-        }
-        
-        .available-for-btn.status-error .circle {
-            border: solid 2px #e74c3c;
-        }
-        
-        .available-for-btn.status-success .circle {
-            border: solid 2px #28a745;
-        }
-        
-        .available-for-btn .circle .dot {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            animation: dot-keys var(--animation);
-        }
-        
-        .available-for-btn.status-error .circle .dot {
-            background-color: #e74c3c;
-        }
-        
-        .available-for-btn.status-success .circle .dot {
-            background-color: #28a745;
-        }
-        
-        .available-for-btn .circle .outline {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            animation: outline-keys var(--animation);
-        }
-        
-        .available-for-btn.status-error .circle .outline {
-            --color: #e74c3c;
-        }
-        
-        .available-for-btn.status-success .circle .outline {
-            --color: #28a745;
-        }
-        
-        .available-for-btn .circle:nth-child(2) {
-            animation-delay: 0.3s;
-        }
-        
-        .available-for-btn .circle:nth-child(2) .dot {
-            animation-delay: 0.3s;
-        }
-        
-        .available-for-btn .circle:nth-child(1) .outline {
-            animation-delay: 0.9s;
-        }
-        
-        .available-for-btn .circle:nth-child(2) .outline {
-            animation-delay: 1.2s;
-        }
-        
-        @keyframes circle-keys {
-            0% {
-                transform: scale(1);
-                opacity: 1;
-            }
-            50% {
-                transform: scale(1.5);
-                opacity: 0.5;
-            }
-            100% {
-                transform: scale(1);
-                opacity: 1;
-            }
-        }
-        
-        @keyframes dot-keys {
-            0% {
-                transform: translate(-50%, -50%) scale(1);
-            }
-            50% {
-                transform: translate(-50%, -50%) scale(0);
-            }
-            100% {
-                transform: translate(-50%, -50%) scale(1);
-            }
-        }
-        
-        @keyframes outline-keys {
-            0% {
-                transform: translate(-50%, -50%) scale(0);
-                outline: solid 15px var(--color);
-                outline-offset: 0;
-                opacity: 1;
-            }
-            100% {
-                transform: translate(-50%, -50%) scale(1);
-                outline: solid 0 transparent;
-                outline-offset: 15px;
-                opacity: 0;
-            }
-        }
-        
-        /* Status variants */
-        .available-for-btn.status-error {
-            color: #e74c3c;
-            background-color: #f8d7da;
-        }
-        
-        .available-for-btn.status-success {
-            color: #28a745;
-            background-color: #d4edda;
-        }
-        
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        
-        .card-header h2 {
-            margin: 0;
-        }
-        
-        .filters-section {
-            background: #f8f9fa;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 25px;
-            border: 1px solid #e9ecef;
-        }
-        
-        .filters-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-        
-        .filters-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: #333;
-            margin: 0;
-        }
-        
-        .filters-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 15px;
-            margin-bottom: 15px;
-        }
-        
-        .filter-group {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-        
-        .filter-label {
-            font-size: 13px;
-            font-weight: 600;
-            color: #555;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .filter-input,
-        .filter-select {
-            padding: 10px 14px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 14px;
-            font-family: inherit;
-            transition: all 0.2s;
-            background: white;
-            color: #333;
-        }
-        
-        .filter-input:focus,
-        .filter-select:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-        
-        .filter-input::placeholder {
-            color: #999;
-        }
-        
-        .filter-actions {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-        
-        .btn-filter {
-            padding: 10px 20px;
-            background: #667eea;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        
-        .btn-filter:hover {
-            background: #5568d3;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-        }
-        
-        .btn-filter-secondary {
-            background: #6c757d;
-        }
-        
-        .btn-filter-secondary:hover {
-            background: #5a6268;
-        }
-        
-        .results-info {
-            font-size: 14px;
-            color: #666;
-            padding: 12px 0;
-            border-top: 1px solid #e9ecef;
-            margin-top: 15px;
-        }
-        
-        .results-count {
-            font-weight: 600;
-            color: #333;
-        }
-        
-        .no-results {
-            text-align: center;
-            padding: 60px 20px;
-            color: #666;
-        }
-        
-        .no-results-icon {
-            font-size: 64px;
-            margin-bottom: 20px;
-        }
-        
-        @media (max-width: 768px) {
-            .filters-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .filters-header {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            
-            .filter-actions {
-                width: 100%;
-            }
-            
-            .btn-filter {
-                flex: 1;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <div class="logo-container">
-                <div class="logo">
-                    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-                        <defs>
-                            <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
-                                <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
-                            </linearGradient>
-                        </defs>
-                        <circle cx="32" cy="32" r="30" fill="url(#logoGradient)" opacity="0.1"/>
-                        <path d="M32 12 L40 28 L24 28 Z" fill="url(#logoGradient)"/>
-                        <path d="M24 28 L32 44 L16 28 Z" fill="url(#logoGradient)" opacity="0.8"/>
-                        <path d="M40 28 L32 44 L48 28 Z" fill="url(#logoGradient)" opacity="0.8"/>
-                        <path d="M20 40 Q24 36 28 40 T36 40" stroke="url(#logoGradient)" stroke-width="2" fill="none" stroke-linecap="round"/>
-                        <path d="M22 46 Q26 42 30 46 T38 46" stroke="url(#logoGradient)" stroke-width="2" fill="none" stroke-linecap="round"/>
-                        <rect x="44" y="40" width="12" height="14" rx="1" fill="url(#logoGradient)" opacity="0.6"/>
-                        <line x1="47" y1="43" x2="53" y2="43" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
-                        <line x1="47" y1="46" x2="53" y2="46" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
-                        <line x1="47" y1="49" x2="51" y2="49" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
-                    </svg>
-                </div>
-                <div class="logo-title">
-                    <h1>Processed Issues<span class="version-badge">v{{ version }}</span></h1>
-                    <p>View all issues that have been analyzed and processed</p>
-                </div>
-            </div>
-            <nav class="nav">
-                <a href="/dashboard">Dashboard</a>
-                <a href="/issues" class="active">Processed Issues</a>
-            </nav>
-        </div>
-        
-        <div class="card">
-            <div class="card-header">
-                <h2>Issues List</h2>
-                <button class="btn btn-clear-all" id="clearAllBtn" onclick="clearAllIssues()" style="display: none;">
-                    Clear All
-                </button>
+{% extends "base.html" %}
+{% from "components.html" import button, card, badge, input, alert, container, spinner, sidebar, header %}
+
+{% block title %}Processed Issues - GitLab Issues Analyzer{% endblock %}
+
+{% block extra_head %}
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg viewBox='0 0 64 64' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3ClinearGradient id='logoGradient' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%23667eea;stop-opacity:1' /%3E%3Cstop offset='100%25' style='stop-color:%23764ba2;stop-opacity:1' /%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='32' cy='32' r='30' fill='url(%23logoGradient)' opacity='0.1'/%3E%3Cpath d='M32 12 L40 28 L24 28 Z' fill='url(%23logoGradient)'/%3E%3Cpath d='M24 28 L32 44 L16 28 Z' fill='url(%23logoGradient)' opacity='0.8'/%3E%3Cpath d='M40 28 L32 44 L48 28 Z' fill='url(%23logoGradient)' opacity='0.8'/%3E%3Cpath d='M20 40 Q24 36 28 40 T36 40' stroke='url(%23logoGradient)' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3Cpath d='M22 46 Q26 42 30 46 T38 46' stroke='url(%23logoGradient)' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3Crect x='44' y='40' width='12' height='14' rx='1' fill='url(%23logoGradient)' opacity='0.6'/%3E%3Cline x1='47' y1='43' x2='53' y2='43' stroke='white' stroke-width='1.5' stroke-linecap='round'/%3E%3Cline x1='47' y1='46' x2='53' y2='46' stroke='white' stroke-width='1.5' stroke-linecap='round'/%3E%3Cline x1='47' y1='49' x2='51' y2='49' stroke='white' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+    /* Status button animations */
+    @keyframes circle-keys {
+        0% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.5); opacity: 0.5; }
+        100% { transform: scale(1); opacity: 1; }
+    }
+    @keyframes dot-keys {
+        0% { transform: translate(-50%, -50%) scale(1); }
+        50% { transform: translate(-50%, -50%) scale(0); }
+        100% { transform: translate(-50%, -50%) scale(1); }
+    }
+    @keyframes outline-keys {
+        0% { transform: translate(-50%, -50%) scale(0); outline: solid 15px var(--color); outline-offset: 0; opacity: 1; }
+        100% { transform: translate(-50%, -50%) scale(1); outline: solid 0 transparent; outline-offset: 15px; opacity: 0; }
+    }
+    .available-for-btn {
+        --animation: 2s ease-in-out infinite;
+        display: inline-flex;
+        align-items: center;
+        column-gap: 6px;
+        border-radius: 100px;
+        padding: 6px 0;
+        outline: none;
+        border: none;
+        font-weight: 600;
+        font-size: 13px;
+        position: relative;
+        transition: 0.2s ease-in-out;
+        cursor: default;
+    }
+    .available-for-btn .circle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin: 0 6px;
+        background-color: transparent;
+        animation: circle-keys var(--animation);
+    }
+    .available-for-btn.status-error .circle { border: solid 2px #e74c3c; }
+    .available-for-btn.status-success .circle { border: solid 2px #28a745; }
+    .available-for-btn .circle .dot {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        animation: dot-keys var(--animation);
+    }
+    .available-for-btn.status-error .circle .dot { background-color: #e74c3c; }
+    .available-for-btn.status-success .circle .dot { background-color: #28a745; }
+    .available-for-btn .circle .outline {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        animation: outline-keys var(--animation);
+    }
+    .available-for-btn.status-error .circle .outline { --color: #e74c3c; }
+    .available-for-btn.status-success .circle .outline { --color: #28a745; }
+    .available-for-btn.status-error { color: #e74c3c; background-color: #f8d7da; }
+    .available-for-btn.status-success { color: #28a745; background-color: #d4edda; }
+</style>
+{% endblock %}
+
+{% block sidebar %}
+{{ sidebar(version=version, current_path=request.path) }}
+{% endblock %}
+
+{% block header %}
+{{ header(title="Processed Issues", description="View all analyzed issues") }}
+{% endblock %}
+
+{% block content %}
+{% call container(max_width="7xl", padding="p-6") %}
+    <div class="space-y-6">
+        <!-- Issues List Card -->
+        {% call card(title="Issues List", class="mb-6") %}
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-semibold leading-none tracking-tight m-0"></h2>
+                {{ button("Clear All", variant="destructive", size="sm", id="clearAllBtn", onclick="clearAllIssues()", class="hidden") }}
             </div>
             
-            <div class="filters-section" id="filtersSection" style="display: none;">
-                <div class="filters-grid">
-                    <div class="filter-group">
-                        <label class="filter-label" for="searchInput">Search</label>
-                        <input 
-                            type="text" 
-                            id="searchInput" 
-                            class="filter-input" 
-                            placeholder="Search by title or issue ID..."
-                            oninput="applyFilters()"
-                        >
+            <!-- Filters Section -->
+            <div id="filtersSection" class="hidden bg-muted rounded-lg p-5 mb-6 border">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                    <div class="space-y-2">
+                        <label class="text-xs font-semibold uppercase tracking-wide text-muted-foreground" for="searchInput">Search</label>
+                        <input type="text" id="searchInput" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" placeholder="Search by title or issue ID..." oninput="applyFilters()">
                     </div>
-                    <div class="filter-group">
-                        <label class="filter-label" for="stateFilter">State</label>
-                        <select id="stateFilter" class="filter-select" onchange="applyFilters()">
+                    <div class="space-y-2">
+                        <label class="text-xs font-semibold uppercase tracking-wide text-muted-foreground" for="stateFilter">State</label>
+                        <select id="stateFilter" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" onchange="applyFilters()">
                             <option value="">All States</option>
                             <option value="opened">Opened</option>
                             <option value="closed">Closed</option>
                             <option value="unknown">Unknown</option>
                         </select>
                     </div>
-                    <div class="filter-group">
-                        <label class="filter-label" for="statusFilter">Status</label>
-                        <select id="statusFilter" class="filter-select" onchange="applyFilters()">
+                    <div class="space-y-2">
+                        <label class="text-xs font-semibold uppercase tracking-wide text-muted-foreground" for="statusFilter">Status</label>
+                        <select id="statusFilter" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" onchange="applyFilters()">
                             <option value="">All Statuses</option>
                             <option value="success">Success</option>
                             <option value="error">Error</option>
                         </select>
                     </div>
-                    <div class="filter-group">
-                        <label class="filter-label" for="labelFilter">Label</label>
-                        <select id="labelFilter" class="filter-select" onchange="applyFilters()">
+                    <div class="space-y-2">
+                        <label class="text-xs font-semibold uppercase tracking-wide text-muted-foreground" for="labelFilter">Label</label>
+                        <select id="labelFilter" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" onchange="applyFilters()">
                             <option value="">All Labels</option>
                         </select>
                     </div>
                 </div>
-                <div class="results-info">
-                    Showing <span class="results-count" id="resultsCount">0</span> of <span id="totalCount">0</span> issues
+                <div class="text-sm text-muted-foreground pt-4 border-t">
+                    Showing <span class="font-semibold text-foreground" id="resultsCount">0</span> of <span id="totalCount">0</span> issues
                 </div>
             </div>
             
-            <div id="loading" class="loading">Loading issues...</div>
-            <div id="error" class="error" style="display: none;"></div>
-            <div id="empty" class="empty" style="display: none;">
-                <div class="empty-icon">📭</div>
-                <h3>No processed issues found</h3>
-                <p>Issues will appear here after they are analyzed.</p>
+            <!-- Loading State -->
+            <div id="loading" class="text-center py-10 text-muted-foreground">
+                {{ spinner(size="md", class="mx-auto") }}
+                <p class="mt-4">Loading issues...</p>
             </div>
-            <div id="noResults" class="no-results" style="display: none;">
-                <div class="no-results-icon">🔍</div>
-                <h3>No issues match your filters</h3>
-                <p>Try adjusting your search or filter criteria.</p>
+            
+            <!-- Error State -->
+            <div id="error" class="hidden relative w-full rounded-lg border border-destructive/50 text-destructive bg-destructive/10 p-4 mb-4"></div>
+            
+            <!-- Empty State -->
+            <div id="empty" class="hidden text-center py-16">
+                <div class="text-6xl mb-4">📭</div>
+                <h3 class="text-xl font-semibold mb-2">No processed issues found</h3>
+                <p class="text-muted-foreground">Issues will appear here after they are analyzed.</p>
             </div>
-            <table class="issues-table" id="issuesTable" style="display: none;">
-                <thead>
-                    <tr>
-                        <th>Issue ID</th>
-                        <th>Title</th>
-                        <th>Status</th>
-                        <th>State</th>
-                        <th>Labels</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="issuesTableBody">
-                </tbody>
-            </table>
-        </div>
+            
+            <!-- No Results State -->
+            <div id="noResults" class="hidden text-center py-16">
+                <div class="text-6xl mb-4">🔍</div>
+                <h3 class="text-xl font-semibold mb-2">No issues match your filters</h3>
+                <p class="text-muted-foreground">Try adjusting your search or filter criteria.</p>
+            </div>
+            
+            <!-- Issues Table -->
+            <div class="overflow-x-auto">
+                <table class="w-full border-collapse" id="issuesTable" style="display: none;">
+                    <thead>
+                        <tr class="border-b bg-muted/50">
+                            <th class="h-12 px-4 text-left align-middle font-semibold text-sm">Issue ID</th>
+                            <th class="h-12 px-4 text-left align-middle font-semibold text-sm">Title</th>
+                            <th class="h-12 px-4 text-center align-middle font-semibold text-sm">Status</th>
+                            <th class="h-12 px-4 text-center align-middle font-semibold text-sm">State</th>
+                            <th class="h-12 px-4 text-left align-middle font-semibold text-sm">Labels</th>
+                            <th class="h-12 px-4 text-left align-middle font-semibold text-sm">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="issuesTableBody" class="[&_tr:last-child]:border-0">
+                    </tbody>
+                </table>
+            </div>
+        {% endcall %}
     </div>
+{% endcall %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Label color mapping passed from Python (reporter.py)
+    const LABEL_COLORS = {{ label_colors | tojson }};
     
-    <script>
-        // Label color mapping passed from Python (reporter.py)
-        const LABEL_COLORS = {{ label_colors | tojson }};
-        
-        // Store all issues for filtering
-        let allIssues = [];
+    // Store all issues for filtering
+    let allIssues = [];
 
-        function getLabelColor(labelName) {
-            const color = LABEL_COLORS[labelName];
-            if (!color) {
-                return "rgb(155, 155, 155)"; // Default gray
-            }
-            // Handle array colors (use first color)
-            if (Array.isArray(color)) {
-                return color[0];
-            }
-            return color;
+    function getLabelColor(labelName) {
+        const color = LABEL_COLORS[labelName];
+        if (!color) {
+            return "rgb(155, 155, 155)"; // Default gray
         }
+        if (Array.isArray(color)) {
+            return color[0];
+        }
+        return color;
+    }
 
-        function getTextColorForBackground(bgColor) {
-            // Extract RGB values from "rgb(r, g, b)" format
-            const match = bgColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
-            if (!match) {
-                return "#ffffff"; // Default to white
-            }
-            const r = parseInt(match[1]);
-            const g = parseInt(match[2]);
-            const b = parseInt(match[3]);
-            // Calculate brightness using standard formula
-            const brightness = (0.299 * r + 0.587 * g + 0.114 * b);
-            // Use black text for light backgrounds, white for dark
-            return brightness > 128 ? "#000000" : "#ffffff";
+    function getTextColorForBackground(bgColor) {
+        const match = bgColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+        if (!match) {
+            return "#ffffff";
         }
+        const r = parseInt(match[1]);
+        const g = parseInt(match[2]);
+        const b = parseInt(match[3]);
+        const brightness = (0.299 * r + 0.587 * g + 0.114 * b);
+        return brightness > 128 ? "#000000" : "#ffffff";
+    }
+    
+    function populateLabelFilter(issues) {
+        const labelFilter = document.getElementById('labelFilter');
+        const labelSet = new Set();
         
-        function populateLabelFilter(issues) {
-            const labelFilter = document.getElementById('labelFilter');
-            const labelSet = new Set();
-            
-            issues.forEach(issue => {
-                if (issue.labels && issue.labels.length > 0) {
-                    issue.labels.forEach(label => {
-                        const labelName = typeof label === 'string' ? label : label.name || label;
-                        if (labelName) {
-                            labelSet.add(labelName);
-                        }
-                    });
-                }
-            });
-            
-            // Clear existing options except "All Labels"
-            labelFilter.innerHTML = '<option value="">All Labels</option>';
-            
-            // Sort labels alphabetically and add to dropdown
-            Array.from(labelSet).sort().forEach(labelName => {
-                const option = document.createElement('option');
-                option.value = labelName;
-                option.textContent = labelName;
-                labelFilter.appendChild(option);
-            });
-        }
-        
-        function applyFilters() {
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
-            const stateFilter = document.getElementById('stateFilter').value;
-            const statusFilter = document.getElementById('statusFilter').value;
-            const labelFilter = document.getElementById('labelFilter').value;
-            
-            const filteredIssues = allIssues.filter(issue => {
-                // Search filter (title or issue ID)
-                if (searchTerm) {
-                    const titleMatch = (issue.title || '').toLowerCase().includes(searchTerm);
-                    const idMatch = String(issue.issue_iid || issue.issue_id || '').includes(searchTerm);
-                    if (!titleMatch && !idMatch) {
-                        return false;
+        issues.forEach(issue => {
+            if (issue.labels && issue.labels.length > 0) {
+                issue.labels.forEach(label => {
+                    const labelName = typeof label === 'string' ? label : label.name || label;
+                    if (labelName) {
+                        labelSet.add(labelName);
                     }
-                }
-                
-                // State filter
-                if (stateFilter && issue.state !== stateFilter) {
+                });
+            }
+        });
+        
+        labelFilter.innerHTML = '<option value="">All Labels</option>';
+        
+        Array.from(labelSet).sort().forEach(labelName => {
+            const option = document.createElement('option');
+            option.value = labelName;
+            option.textContent = labelName;
+            labelFilter.appendChild(option);
+        });
+    }
+    
+    function applyFilters() {
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+        const stateFilter = document.getElementById('stateFilter').value;
+        const statusFilter = document.getElementById('statusFilter').value;
+        const labelFilter = document.getElementById('labelFilter').value;
+        
+        const filteredIssues = allIssues.filter(issue => {
+            if (searchTerm) {
+                const titleMatch = (issue.title || '').toLowerCase().includes(searchTerm);
+                const idMatch = String(issue.issue_iid || issue.issue_id || '').includes(searchTerm);
+                if (!titleMatch && !idMatch) {
                     return false;
                 }
-                
-                // Status filter
-                if (statusFilter) {
-                    if (statusFilter === 'error' && !issue.has_error) {
-                        return false;
-                    }
-                    if (statusFilter === 'success' && issue.has_error) {
-                        return false;
-                    }
+            }
+            
+            if (stateFilter && issue.state !== stateFilter) {
+                return false;
+            }
+            
+            if (statusFilter) {
+                if (statusFilter === 'error' && !issue.has_error) {
+                    return false;
                 }
-                
-                // Label filter
-                if (labelFilter) {
-                    const hasLabel = issue.labels && issue.labels.some(label => {
-                        const labelName = typeof label === 'string' ? label : label.name || label;
-                        return labelName === labelFilter;
-                    });
-                    if (!hasLabel) {
-                        return false;
-                    }
+                if (statusFilter === 'success' && issue.has_error) {
+                    return false;
                 }
-                
-                return true;
+            }
+            
+            if (labelFilter) {
+                const hasLabel = issue.labels && issue.labels.some(label => {
+                    const labelName = typeof label === 'string' ? label : label.name || label;
+                    return labelName === labelFilter;
+                });
+                if (!hasLabel) {
+                    return false;
+                }
+            }
+            
+            return true;
+        });
+        
+        displayIssues(filteredIssues);
+        updateResultsCount(filteredIssues.length, allIssues.length);
+    }
+    
+    function updateResultsCount(filtered, total) {
+        document.getElementById('resultsCount').textContent = filtered;
+        document.getElementById('totalCount').textContent = total;
+    }
+    
+    function displayIssues(issues) {
+        const empty = document.getElementById('empty');
+        const noResults = document.getElementById('noResults');
+        const table = document.getElementById('issuesTable');
+        const tbody = document.getElementById('issuesTableBody');
+        
+        if (issues.length === 0) {
+            if (allIssues.length === 0) {
+                empty.classList.remove('hidden');
+                noResults.classList.add('hidden');
+            } else {
+                empty.classList.add('hidden');
+                noResults.classList.remove('hidden');
+            }
+            table.style.display = 'none';
+            return;
+        }
+        
+        empty.classList.add('hidden');
+        noResults.classList.add('hidden');
+        table.style.display = 'table';
+        
+        tbody.innerHTML = '';
+        issues.forEach(issue => {
+            const row = document.createElement('tr');
+            row.className = 'border-b transition-colors hover:bg-muted/50';
+            
+            const stateClass = issue.state === 'opened' ? 'opened' : 
+                             issue.state === 'closed' ? 'closed' : 'unknown';
+            const stateColors = {
+                'opened': 'bg-green-500 text-white',
+                'closed': 'bg-gray-500 text-white',
+                'unknown': 'bg-yellow-500 text-black'
+            };
+            const stateBadge = `<span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${stateColors[stateClass] || 'bg-gray-400 text-white'}">${issue.state || 'unknown'}</span>`;
+            
+            let statusBadge = '';
+            if (issue.has_error) {
+                const errorMsg = (issue.error || 'Analysis error').replace(/"/g, '&quot;');
+                statusBadge = `<button class="available-for-btn status-error" title="${errorMsg}">
+                    <div class="circle">
+                        <div class="dot"></div>
+                        <div class="outline"></div>
+                    </div>
+                </button>`;
+            } else if (issue.state === 'opened' || issue.state === 'closed') {
+                statusBadge = `<button class="available-for-btn status-success">
+                    <div class="circle">
+                        <div class="dot"></div>
+                        <div class="outline"></div>
+                    </div>
+                </button>`;
+            }
+            
+            const issueId = `#${issue.issue_iid || issue.issue_id}`;
+            const projectId = issue.project_id ? ` (PID: ${issue.project_id})` : '';
+            const issueIdDisplay = `<strong>${issueId}</strong>${projectId}`;
+            
+            const labelsHtml = issue.labels && issue.labels.length > 0
+                ? issue.labels.map(label => {
+                    const labelName = typeof label === 'string' ? label : label.name || label;
+                    const labelColor = getLabelColor(labelName);
+                    const textColor = getTextColorForBackground(labelColor);
+                    const escapedLabelName = labelName.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+                    return `<span class="inline-flex items-center rounded-md border px-2 py-1 text-xs font-medium mr-1" style="background-color: ${labelColor}; color: ${textColor};">${escapedLabelName}</span>`;
+                }).join('')
+                : '<span class="text-muted-foreground">None</span>';
+            
+            const viewLink = `<a href="/issues/${issue.issue_id}" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 h-9 px-3 bg-primary text-primary-foreground hover:bg-primary/90">View</a>`;
+            const deleteBtn = `<button class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 h-9 px-3 bg-destructive text-destructive-foreground hover:bg-destructive/90" onclick="deleteIssue(${issue.issue_id}, '${(issue.title || 'Untitled').replace(/'/g, "\\'")}')">Delete</button>`;
+            
+            row.innerHTML = `
+                <td class="p-4 align-middle whitespace-nowrap">${issueIdDisplay}</td>
+                <td class="p-4 align-middle">
+                    ${issue.web_url 
+                        ? `<a href="${issue.web_url}" target="_blank" class="text-primary hover:underline font-medium">${issue.title || 'Untitled'}</a>`
+                        : issue.title || 'Untitled'}
+                </td>
+                <td class="p-4 align-middle text-center">${statusBadge}</td>
+                <td class="p-4 align-middle text-center">${stateBadge}</td>
+                <td class="p-4 align-middle">${labelsHtml}</td>
+                <td class="p-4 align-middle">
+                    <div class="flex gap-2 items-center">
+                        ${viewLink}
+                        ${deleteBtn}
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    async function loadIssues() {
+        const loading = document.getElementById('loading');
+        const error = document.getElementById('error');
+        const empty = document.getElementById('empty');
+        const filtersSection = document.getElementById('filtersSection');
+        const table = document.getElementById('issuesTable');
+        
+        try {
+            const response = await fetch('/api/issues');
+            const data = await response.json();
+            
+            loading.classList.add('hidden');
+            error.classList.add('hidden');
+            
+            if (!data.issues || data.issues.length === 0) {
+                empty.classList.remove('hidden');
+                table.style.display = 'none';
+                filtersSection.classList.add('hidden');
+                allIssues = [];
+                return;
+            }
+            
+            allIssues = data.issues;
+            filtersSection.classList.remove('hidden');
+            populateLabelFilter(allIssues);
+            
+            const clearAllBtn = document.getElementById('clearAllBtn');
+            if (clearAllBtn) {
+                clearAllBtn.classList.toggle('hidden', allIssues.length === 0);
+            }
+            
+            applyFilters();
+        } catch (err) {
+            loading.classList.add('hidden');
+            error.classList.remove('hidden');
+            error.textContent = `Error loading issues: ${err.message}`;
+            table.style.display = 'none';
+            empty.classList.add('hidden');
+            filtersSection.classList.add('hidden');
+            allIssues = [];
+        }
+    }
+    
+    async function deleteIssue(issueId, issueTitle) {
+        if (!confirm(`Are you sure you want to delete issue #${issueId} "${issueTitle}"?\n\nThis will remove it from the cache and it will need to be re-analyzed.`)) {
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/api/issues/${issueId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
             });
             
-            displayIssues(filteredIssues);
-            updateResultsCount(filteredIssues.length, allIssues.length);
-        }
-        
-        function clearFilters() {
-            document.getElementById('searchInput').value = '';
-            document.getElementById('stateFilter').value = '';
-            document.getElementById('statusFilter').value = '';
-            document.getElementById('labelFilter').value = '';
-            applyFilters();
-        }
-        
-        function updateResultsCount(filtered, total) {
-            document.getElementById('resultsCount').textContent = filtered;
-            document.getElementById('totalCount').textContent = total;
-        }
-        
-        function displayIssues(issues) {
-            const empty = document.getElementById('empty');
-            const noResults = document.getElementById('noResults');
-            const table = document.getElementById('issuesTable');
-            const tbody = document.getElementById('issuesTableBody');
+            const data = await response.json();
             
-            if (issues.length === 0) {
-                if (allIssues.length === 0) {
-                    empty.style.display = 'block';
-                    noResults.style.display = 'none';
-                } else {
-                    empty.style.display = 'none';
-                    noResults.style.display = 'block';
+            if (response.ok) {
+                loadIssues();
+            } else {
+                alert(`Error: ${data.error || 'Failed to delete issue'}`);
+            }
+        } catch (err) {
+            alert(`Error deleting issue: ${err.message}`);
+        }
+    }
+    
+    async function clearAllIssues() {
+        if (!confirm('Are you sure you want to clear ALL cached issues?\n\nThis action cannot be undone. All issues will need to be re-analyzed.')) {
+            return;
+        }
+        
+        try {
+            const response = await fetch('/api/issues', {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
                 }
-                table.style.display = 'none';
-                return;
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                loadIssues();
+            } else {
+                alert(`Error: ${data.error || 'Failed to clear all issues'}`);
             }
-            
-            empty.style.display = 'none';
-            noResults.style.display = 'none';
-            table.style.display = 'table';
-            
-            tbody.innerHTML = '';
-            issues.forEach(issue => {
-                    const row = document.createElement('tr');
-                    
-                    const stateClass = issue.state === 'opened' ? 'opened' : 
-                                     issue.state === 'closed' ? 'closed' : 'unknown';
-                    const stateBadge = `<span class="badge ${stateClass}">${issue.state || 'unknown'}</span>`;
-                    
-                    // Add error/success status button with circle, dot, and outline (will be shown in Status column)
-                    let statusBadge = '';
-                    if (issue.has_error) {
-                        const errorMsg = (issue.error || 'Analysis error').replace(/"/g, '&quot;');
-                        statusBadge = `<button class="available-for-btn status-error" title="${errorMsg}">
-                            <div class="circle">
-                                <div class="dot"></div>
-                                <div class="outline"></div>
-                            </div>
-                        </button>`;
-                    } else if (issue.state === 'opened' || issue.state === 'closed') {
-                        statusBadge = `<button class="available-for-btn status-success">
-                            <div class="circle">
-                                <div class="dot"></div>
-                                <div class="outline"></div>
-                            </div>
-                        </button>`;
-                    }
-                    
-                    // Format issue ID with Project ID: '#1700 (PID: 32)' - only issue ID is bold
-                    const issueId = `#${issue.issue_iid || issue.issue_id}`;
-                    const projectId = issue.project_id ? ` (PID: ${issue.project_id})` : '';
-                    const issueIdDisplay = `<strong>${issueId}</strong>${projectId}`;
-                    
-                    // Format labels with colors from mapping
-                    const labelsHtml = issue.labels && issue.labels.length > 0
-                        ? issue.labels.map(label => {
-                            const labelName = typeof label === 'string' ? label : label.name || label;
-                            const labelColor = getLabelColor(labelName);
-                            const textColor = getTextColorForBackground(labelColor);
-                            const escapedLabelName = labelName.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-                            return `<span class="label" style="background-color: ${labelColor}; color: ${textColor};">${escapedLabelName}</span>`;
-                        }).join('')
-                        : '<span style="color: #999;">None</span>';
-                    
-                    const viewLink = `<a href="/issues/${issue.issue_id}" class="btn" style="background-color: #667eea; color: white;">View</a>`;
-                    const deleteBtn = `<button class="btn btn-danger" onclick="deleteIssue(${issue.issue_id}, '${(issue.title || 'Untitled').replace(/'/g, "\\'")}')">Delete</button>`;
-                    
-                    row.innerHTML = `
-                        <td>${issueIdDisplay}</td>
-                        <td>
-                            ${issue.web_url 
-                                ? `<a href="${issue.web_url}" target="_blank">${issue.title || 'Untitled'}</a>`
-                                : issue.title || 'Untitled'}
-                        </td>
-                        <td>${statusBadge}</td>
-                        <td>${stateBadge}</td>
-                        <td>${labelsHtml}</td>
-                        <td>
-                            <div class="actions-cell">
-                                ${viewLink}
-                                ${deleteBtn}
-                            </div>
-                        </td>
-                    `;
-                    tbody.appendChild(row);
-                });
+        } catch (err) {
+            alert(`Error clearing all issues: ${err.message}`);
         }
-
-        async function loadIssues() {
-            const loading = document.getElementById('loading');
-            const error = document.getElementById('error');
-            const empty = document.getElementById('empty');
-            const filtersSection = document.getElementById('filtersSection');
-            const table = document.getElementById('issuesTable');
-            
-            try {
-                const response = await fetch('/api/issues');
-                const data = await response.json();
-                
-                loading.style.display = 'none';
-                error.style.display = 'none';
-                
-                if (!data.issues || data.issues.length === 0) {
-                    empty.style.display = 'block';
-                    table.style.display = 'none';
-                    filtersSection.style.display = 'none';
-                    allIssues = [];
-                    return;
-                }
-                
-                // Store all issues
-                allIssues = data.issues;
-                
-                // Show filters section
-                filtersSection.style.display = 'block';
-                
-                // Populate label filter dropdown
-                populateLabelFilter(allIssues);
-                
-                // Show/hide clear all button based on whether there are issues
-                const clearAllBtn = document.getElementById('clearAllBtn');
-                if (clearAllBtn) {
-                    clearAllBtn.style.display = allIssues.length > 0 ? 'block' : 'none';
-                }
-                
-                // Apply filters (will display all issues initially)
-                applyFilters();
-            } catch (err) {
-                loading.style.display = 'none';
-                error.style.display = 'block';
-                error.textContent = `Error loading issues: ${err.message}`;
-                table.style.display = 'none';
-                empty.style.display = 'none';
-                filtersSection.style.display = 'none';
-                allIssues = [];
-            }
-        }
-        
-        async function deleteIssue(issueId, issueTitle) {
-            if (!confirm(`Are you sure you want to delete issue #${issueId} "${issueTitle}"?\n\nThis will remove it from the cache and it will need to be re-analyzed.`)) {
-                return;
-            }
-            
-            try {
-                const response = await fetch(`/api/issues/${issueId}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                });
-                
-                const data = await response.json();
-                
-                if (response.ok) {
-                    // Reload the issues list
-                    loadIssues();
-                } else {
-                    alert(`Error: ${data.error || 'Failed to delete issue'}`);
-                }
-            } catch (err) {
-                alert(`Error deleting issue: ${err.message}`);
-            }
-        }
-        
-        async function clearAllIssues() {
-            if (!confirm('Are you sure you want to clear ALL cached issues?\n\nThis action cannot be undone. All issues will need to be re-analyzed.')) {
-                return;
-            }
-            
-            try {
-                const response = await fetch('/api/issues', {
-                    method: 'DELETE',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                });
-                
-                const data = await response.json();
-                
-                if (response.ok) {
-                    // Reload the issues list
-                    loadIssues();
-                } else {
-                    alert(`Error: ${data.error || 'Failed to clear all issues'}`);
-                }
-            } catch (err) {
-                alert(`Error clearing all issues: ${err.message}`);
-            }
-        }
-        
-        // Load issues on page load
-        loadIssues();
-        
-        // Auto-refresh every 30 seconds
-        setInterval(loadIssues, 30000);
-    </script>
-</body>
-</html>
-
+    }
+    
+    // Load issues on page load
+    loadIssues();
+    
+    // Auto-refresh every 30 seconds
+    setInterval(loadIssues, 30000);
+</script>
+{% endblock %}

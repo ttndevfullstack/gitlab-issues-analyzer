@@ -1,0 +1,234 @@
+{#
+    Reusable Jinja2 Component Macros
+    Inspired by Shadcn UI components
+    
+    Usage:
+        {% from "components.html" import button, card, badge, input, alert %}
+        
+        {{ button("Click Me", variant="default", size="lg") }}
+        
+        {% call card(title="My Card", description="Card description") %}
+            <p>Card content</p>
+        {% endcall %}
+#}
+
+{% macro button(text, variant="default", size="default", class="", type="button", onclick="", disabled=false, id="") %}
+<button 
+    type="{{ type }}"
+    {% if id %}id="{{ id }}"{% endif %}
+    {% if onclick %}onclick="{{ onclick }}"{% endif %}
+    {% if disabled %}disabled{% endif %}
+    class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50
+    {% if variant == 'default' %}bg-primary text-primary-foreground hover:bg-primary/90{% endif %}
+    {% if variant == 'destructive' %}bg-destructive text-destructive-foreground hover:bg-destructive/90{% endif %}
+    {% if variant == 'outline' %}border border-input bg-background hover:bg-accent hover:text-accent-foreground{% endif %}
+    {% if variant == 'secondary' %}bg-secondary text-secondary-foreground hover:bg-secondary/80{% endif %}
+    {% if variant == 'ghost' %}hover:bg-accent hover:text-accent-foreground{% endif %}
+    {% if variant == 'link' %}text-primary underline-offset-4 hover:underline{% endif %}
+    {% if size == 'default' %}h-10 px-4 py-2{% endif %}
+    {% if size == 'sm' %}h-9 rounded-md px-3{% endif %}
+    {% if size == 'lg' %}h-11 rounded-md px-8{% endif %}
+    {% if size == 'icon' %}h-10 w-10{% endif %}
+    {{ class }}">
+    {{ text }}
+</button>
+{% endmacro %}
+
+{% macro card(title="", description="", class="", header_class="", content_class="") %}
+<div class="rounded-lg border bg-card text-card-foreground shadow-sm {{ class }}">
+    {% if title or description %}
+    <div class="flex flex-col space-y-1.5 p-6 {{ header_class }}">
+        {% if title %}<h3 class="text-2xl font-semibold leading-none tracking-tight">{{ title }}</h3>{% endif %}
+        {% if description %}<p class="text-sm text-muted-foreground">{{ description }}</p>{% endif %}
+    </div>
+    {% endif %}
+    <div class="p-6 {% if title or description %}pt-0{% endif %} {{ content_class }}">
+        {{ caller() }}
+    </div>
+</div>
+{% endmacro %}
+
+{% macro badge(text, variant="default", class="") %}
+<span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2
+    {% if variant == 'default' %}border-transparent bg-primary text-primary-foreground hover:bg-primary/80{% endif %}
+    {% if variant == 'secondary' %}border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80{% endif %}
+    {% if variant == 'destructive' %}border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80{% endif %}
+    {% if variant == 'outline' %}text-foreground{% endif %}
+    {{ class }}">
+    {{ text }}
+</span>
+{% endmacro %}
+
+{% macro input(label="", name="", type="text", placeholder="", required=false, help_text="", class="", value="", id="") %}
+<div class="space-y-2 {{ class }}">
+    {% if label %}
+    <label for="{% if id %}{{ id }}{% else %}{{ name }}{% endif %}" class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+        {{ label }}
+        {% if required %}<span class="text-destructive">*</span>{% endif %}
+    </label>
+    {% endif %}
+    <input 
+        type="{{ type }}"
+        name="{{ name }}"
+        id="{% if id %}{{ id }}{% else %}{{ name }}{% endif %}"
+        placeholder="{{ placeholder }}"
+        {% if value %}value="{{ value }}"{% endif %}
+        {% if required %}required{% endif %}
+        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+    {% if help_text %}
+    <p class="text-sm text-muted-foreground">{{ help_text }}</p>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{% macro alert(message, variant="default", class="", dismissible=false, id="") %}
+<div class="relative w-full rounded-lg border p-4
+    {% if variant == 'default' %}bg-background text-foreground{% endif %}
+    {% if variant == 'destructive' %}border-destructive/50 text-destructive dark:border-destructive [&>svg]:text-destructive{% endif %}
+    {% if variant == 'warning' %}border-yellow-500/50 bg-yellow-50 text-yellow-900 dark:bg-yellow-900/20 dark:text-yellow-400{% endif %}
+    {% if variant == 'info' %}border-blue-500/50 bg-blue-50 text-blue-900 dark:bg-blue-900/20 dark:text-blue-400{% endif %}
+    {% if variant == 'success' %}border-green-500/50 bg-green-50 text-green-900 dark:bg-green-900/20 dark:text-green-400{% endif %}
+    {{ class }}"
+    {% if id %}id="{{ id }}"{% endif %}>
+    {{ message }}
+    {% if dismissible %}
+    <button onclick="this.parentElement.style.display='none'" class="absolute right-2 top-2 text-current opacity-70 hover:opacity-100">×</button>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{#
+    Form Group Wrapper
+    Use this to wrap form inputs with consistent spacing
+#}
+{% macro form_group(class="") %}
+<div class="space-y-2 {{ class }}">
+    {{ caller() }}
+</div>
+{% endmacro %}
+
+{#
+    Container Component
+    Provides consistent max-width and padding
+#}
+{% macro container(max_width="7xl", class="", padding="p-4 md:p-8") %}
+<div class="mx-auto w-full max-w-{{ max_width }} {{ padding }} {{ class }}">
+    {{ caller() }}
+</div>
+{% endmacro %}
+
+{#
+    Grid Layout Component
+#}
+{% macro grid(cols=1, gap=4, class="", responsive=true) %}
+<div class="grid grid-cols-{{ cols }} gap-{{ gap }}
+    {% if responsive %}md:grid-cols-2 lg:grid-cols-3{% endif %}
+    {{ class }}">
+    {{ caller() }}
+</div>
+{% endmacro %}
+
+{#
+    Loading Spinner Component
+#}
+{% macro spinner(size="md", class="") %}
+<div class="inline-block animate-spin rounded-full border-4 border-solid border-current border-r-transparent
+    {% if size == 'sm' %}h-4 w-4{% endif %}
+    {% if size == 'md' %}h-8 w-8{% endif %}
+    {% if size == 'lg' %}h-12 w-12{% endif %}
+    {{ class }}"></div>
+{% endmacro %}
+
+{#
+    Sidebar Navigation Component
+    Shadcn UI-style sidebar with collapsible support
+#}
+{% macro sidebar(version="", current_path="") %}
+<aside id="sidebar" class="fixed left-0 top-0 z-40 h-screen w-64 border-r bg-background transition-transform lg:translate-x-0 -translate-x-full">
+    <div class="flex h-full flex-col">
+        <!-- Sidebar Header -->
+        <div class="flex h-16 items-center border-b px-6">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 flex-shrink-0">
+                    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" class="w-full h-full">
+                        <defs>
+                            <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+                        <circle cx="32" cy="32" r="30" fill="url(#logoGradient)" opacity="0.1"/>
+                        <path d="M32 12 L40 28 L24 28 Z" fill="url(#logoGradient)"/>
+                        <path d="M24 28 L32 44 L16 28 Z" fill="url(#logoGradient)" opacity="0.8"/>
+                        <path d="M40 28 L32 44 L48 28 Z" fill="url(#logoGradient)" opacity="0.8"/>
+                        <path d="M20 40 Q24 36 28 40 T36 40" stroke="url(#logoGradient)" stroke-width="2" fill="none" stroke-linecap="round"/>
+                        <path d="M22 46 Q26 42 30 46 T38 46" stroke="url(#logoGradient)" stroke-width="2" fill="none" stroke-linecap="round"/>
+                        <rect x="44" y="40" width="12" height="14" rx="1" fill="url(#logoGradient)" opacity="0.6"/>
+                        <line x1="47" y1="43" x2="53" y2="43" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+                        <line x1="47" y1="46" x2="53" y2="46" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+                        <line x1="47" y1="49" x2="51" y2="49" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <div class="flex flex-col">
+                    <span class="text-sm font-semibold">GitLab Issues</span>
+                    <span class="text-xs text-muted-foreground">Analyzer</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Navigation Links -->
+        <nav class="flex-1 space-y-1 p-4">
+            <a href="/dashboard" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors
+                {% if current_path == '/dashboard' or current_path == '/' %}bg-accent text-accent-foreground{% else %}hover:bg-accent hover:text-accent-foreground{% endif %}">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                </svg>
+                Dashboard
+            </a>
+            <a href="/issues" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors
+                {% if current_path == '/issues' %}bg-accent text-accent-foreground{% else %}hover:bg-accent hover:text-accent-foreground{% endif %}">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                Processed Issues
+            </a>
+        </nav>
+        
+        <!-- Sidebar Footer -->
+        <div class="border-t p-4">
+            <div class="text-xs text-muted-foreground">
+                <div class="font-semibold">Version</div>
+                <div>{{ version }}</div>
+            </div>
+        </div>
+    </div>
+</aside>
+
+<!-- Sidebar Overlay (for mobile) -->
+<div id="sidebar-overlay" class="fixed inset-0 z-30 bg-background/80 backdrop-blur-sm lg:hidden hidden" onclick="toggleSidebar()"></div>
+{% endmacro %}
+
+{#
+    Header/Topbar Component
+    Shadcn UI-style header with mobile menu toggle
+#}
+{% macro header(title="", description="", show_sidebar_toggle=true) %}
+<header class="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-4 lg:px-6">
+    {% if show_sidebar_toggle %}
+    <button onclick="toggleSidebar()" class="lg:hidden inline-flex items-center justify-center rounded-md p-2 hover:bg-accent hover:text-accent-foreground">
+        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+        </svg>
+    </button>
+    {% endif %}
+    
+    <div class="flex-1">
+        {% if title %}
+        <h1 class="text-lg font-semibold">{{ title }}</h1>
+        {% endif %}
+        {% if description %}
+        <p class="text-sm text-muted-foreground">{{ description }}</p>
+        {% endif %}
+    </div>
+</header>
+{% endmacro %}

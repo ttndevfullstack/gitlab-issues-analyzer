@@ -20,19 +20,6 @@ wheels/
 .installed.cfg
 *.egg
 
-# Virtual Environment
-venv/
-env/
-ENV/
-.venv
-
-# Configuration files with secrets
-config.json
-*.env
-.env*
-secrets/
-*.secret
-
 # IDE
 .vscode/
 .idea/
@@ -48,18 +35,11 @@ Thumbs.db
 *.log
 logs/
 
-# Processed issues tracking (optional)
-processed_issues.json
-
 # Testing
 .pytest_cache/
 .coverage
 htmlcov/
 
-# Temporary files
-tmp/
-temp/
-*.tmp
-
-
-data/
+# App
+.env
+venv/

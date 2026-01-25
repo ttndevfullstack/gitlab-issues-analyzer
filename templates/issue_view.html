@@ -1,590 +1,232 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Issue Details - GitLab Issues Analyzer</title>
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg viewBox='0 0 64 64' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3ClinearGradient id='logoGradient' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%23667eea;stop-opacity:1' /%3E%3Cstop offset='100%25' style='stop-color:%23764ba2;stop-opacity:1' /%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='32' cy='32' r='30' fill='url(%23logoGradient)' opacity='0.1'/%3E%3Cpath d='M32 12 L40 28 L24 28 Z' fill='url(%23logoGradient)'/%3E%3Cpath d='M24 28 L32 44 L16 28 Z' fill='url(%23logoGradient)' opacity='0.8'/%3E%3Cpath d='M40 28 L32 44 L48 28 Z' fill='url(%23logoGradient)' opacity='0.8'/%3E%3Cpath d='M20 40 Q24 36 28 40 T36 40' stroke='url(%23logoGradient)' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3Cpath d='M22 46 Q26 42 30 46 T38 46' stroke='url(%23logoGradient)' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3Crect x='44' y='40' width='12' height='14' rx='1' fill='url(%23logoGradient)' opacity='0.6'/%3E%3Cline x1='47' y1='43' x2='53' y2='43' stroke='white' stroke-width='1.5' stroke-linecap='round'/%3E%3Cline x1='47' y1='46' x2='53' y2='46' stroke='white' stroke-width='1.5' stroke-linecap='round'/%3E%3Cline x1='47' y1='49' x2='51' y2='49' stroke='white' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-        
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-        
-        .header {
-            background: white;
-            border-radius: 16px;
-            padding: 40px;
-            margin-bottom: 30px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-            border: 1px solid rgba(102, 126, 234, 0.1);
-        }
-        
-        .header h1 {
-            color: #333;
-            font-size: 36px;
-            margin-bottom: 12px;
-            font-weight: 700;
-            letter-spacing: -0.5px;
-        }
-        
-        .header p {
-            color: #666;
-            font-size: 17px;
-            font-weight: 400;
-            margin-bottom: 20px;
-        }
-        
-        .nav {
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-            margin-top: 20px;
-        }
-        
-        .nav a {
-            display: inline-block;
-            padding: 12px 24px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            text-decoration: none;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 15px;
-            transition: transform 0.2s, box-shadow 0.2s;
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-        }
-        
-        .nav a:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
-        }
-        
-        .version-badge {
-            display: inline-block;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            letter-spacing: 0.3px;
-            margin-left: 12px;
-            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-            vertical-align: middle;
-        }
-        
-        .logo-container {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-        
-        .logo {
-            width: 56px;
-            height: 56px;
-            flex-shrink: 0;
-        }
-        
-        .logo-title {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-        
-        .logo-title h1 {
-            margin: 0;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        
-        .logo-title p {
-            margin: 0;
-        }
-        
-        .card {
-            background: white;
-            border-radius: 16px;
-            padding: 35px;
-            margin-bottom: 30px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-            border: 1px solid rgba(102, 126, 234, 0.1);
-        }
-        
-        .card h2 {
-            color: #333;
-            font-size: 26px;
-            margin-bottom: 25px;
-            border-bottom: 3px solid #667eea;
-            padding-bottom: 12px;
-            font-weight: 600;
-        }
-        
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 25px;
-            border-bottom: 3px solid #667eea;
-            padding-bottom: 12px;
-        }
-        
-        .card-header h2 {
-            margin: 0;
-            border-bottom: none;
-            padding-bottom: 0;
-        }
-        
-        .card-header-actions {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-        
-        .issue-info {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin-top: 16px;
-        }
-        
-        .info-item {
-            display: flex;
-            align-items: flex-start;
-            gap: 12px;
-            padding: 8px 0;
-            border-bottom: 1px solid #e9ecef;
-        }
-        
-        .info-item:last-child {
-            border-bottom: none;
-        }
-        
-        .info-item label {
-            font-size: 14px;
-            color: #666;
-            font-weight: 600;
-            min-width: 120px;
-            flex-shrink: 0;
-        }
-        
-        .info-item value {
-            font-size: 14px;
-            color: #333;
-            font-weight: 400;
-            word-break: break-word;
-            flex: 1;
-        }
-        
-        .info-item value.badge {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 600;
-            width: fit-content;
-            flex: 0 0 auto;
-        }
-        
-        .info-item value.badge.enabled {
-            background: #d4edda;
-            color: #155724;
-        }
-        
-        .issue-url-link {
-            font-size: 13px;
-            color: #667eea;
-            text-decoration: none;
-            display: inline-block;
-        }
-        
-        .issue-url-link:hover {
-            text-decoration: underline;
-        }
-        
-        .btn {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 6px;
-            font-weight: 600;
-            font-size: 13px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-        
-        .btn-primary:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
-        }
-        
-        .btn-primary:active {
-            transform: translateY(0);
-        }
-        
-        .btn-secondary {
-            background: #6c757d;
-            color: white;
-        }
-        
-        .btn-secondary:hover {
-            background: #5a6268;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(108, 117, 125, 0.3);
-        }
-        
-        .btn-secondary:active {
-            transform: translateY(0);
-        }
-        
-        .btn-success {
-            background: #28a745;
-            color: white;
-        }
-        
-        .btn-success:hover {
-            background: #218838;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
-        }
-        
-        .btn-success:active {
-            transform: translateY(0);
-        }
-        
-        .action-status {
-            margin-top: 16px;
-            padding: 12px;
-            border-radius: 6px;
-            font-size: 14px;
-        }
-        
-        .action-status.success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        
-        .action-status.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        
-        .action-status.info {
-            background: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
-        }
-        
-        .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-        
-        .email-preview {
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            padding: 20px;
-            background-color: #f9f9f9;
-            max-height: 600px;
-            overflow-y: auto;
-        }
-        
-        .email-preview iframe {
-            width: 100%;
-            border: none;
-            min-height: 500px;
-        }
-        
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #666;
-        }
-        
-        .error {
-            background-color: #f8d7da;
-            color: #721c24;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 20px 0;
-        }
-        
-        .status {
-            padding: 10px 15px;
-            border-radius: 8px;
-            margin: 10px 0;
-            font-weight: 600;
-        }
-        
-        .status.success {
-            background-color: #d4edda;
-            color: #155724;
-        }
-        
-        .status.error {
-            background-color: #f8d7da;
-            color: #721c24;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <div class="logo-container">
-                <div class="logo">
-                    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-                        <defs>
-                            <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
-                                <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
-                            </linearGradient>
-                        </defs>
-                        <circle cx="32" cy="32" r="30" fill="url(#logoGradient)" opacity="0.1"/>
-                        <path d="M32 12 L40 28 L24 28 Z" fill="url(#logoGradient)"/>
-                        <path d="M24 28 L32 44 L16 28 Z" fill="url(#logoGradient)" opacity="0.8"/>
-                        <path d="M40 28 L32 44 L48 28 Z" fill="url(#logoGradient)" opacity="0.8"/>
-                        <path d="M20 40 Q24 36 28 40 T36 40" stroke="url(#logoGradient)" stroke-width="2" fill="none" stroke-linecap="round"/>
-                        <path d="M22 46 Q26 42 30 46 T38 46" stroke="url(#logoGradient)" stroke-width="2" fill="none" stroke-linecap="round"/>
-                        <rect x="44" y="40" width="12" height="14" rx="1" fill="url(#logoGradient)" opacity="0.6"/>
-                        <line x1="47" y1="43" x2="53" y2="43" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
-                        <line x1="47" y1="46" x2="53" y2="46" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
-                        <line x1="47" y1="49" x2="51" y2="49" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
-                    </svg>
-                </div>
-                <div class="logo-title">
-                    <h1>Issue Details<span class="version-badge">v{{ version }}</span></h1>
-                    <p>View issue analysis and email report</p>
-                </div>
+{% extends "base.html" %}
+{% from "components.html" import button, card, badge, alert, container, spinner, sidebar, header %}
+
+{% block title %}Issue Details - GitLab Issues Analyzer{% endblock %}
+
+{% block extra_head %}
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg viewBox='0 0 64 64' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3ClinearGradient id='logoGradient' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%23667eea;stop-opacity:1' /%3E%3Cstop offset='100%25' style='stop-color:%23764ba2;stop-opacity:1' /%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='32' cy='32' r='30' fill='url(%23logoGradient)' opacity='0.1'/%3E%3Cpath d='M32 12 L40 28 L24 28 Z' fill='url(%23logoGradient)'/%3E%3Cpath d='M24 28 L32 44 L16 28 Z' fill='url(%23logoGradient)' opacity='0.8'/%3E%3Cpath d='M40 28 L32 44 L48 28 Z' fill='url(%23logoGradient)' opacity='0.8'/%3E%3Cpath d='M20 40 Q24 36 28 40 T36 40' stroke='url(%23logoGradient)' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3Cpath d='M22 46 Q26 42 30 46 T38 46' stroke='url(%23logoGradient)' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3Crect x='44' y='40' width='12' height='14' rx='1' fill='url(%23logoGradient)' opacity='0.6'/%3E%3Cline x1='47' y1='43' x2='53' y2='43' stroke='white' stroke-width='1.5' stroke-linecap='round'/%3E%3Cline x1='47' y1='46' x2='53' y2='46' stroke='white' stroke-width='1.5' stroke-linecap='round'/%3E%3Cline x1='47' y1='49' x2='51' y2='49' stroke='white' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E">
+{% endblock %}
+
+{% block sidebar %}
+{{ sidebar(version=version, current_path=request.path) }}
+{% endblock %}
+
+{% block header %}
+{{ header(title="Issue Details", description="View issue analysis and email report") }}
+{% endblock %}
+
+{% block content %}
+{% call container(max_width="7xl", padding="p-6") %}
+    <div class="space-y-6">
+        <!-- Loading State -->
+        {% call card(class="mb-6") %}
+            <div id="loading" class="text-center py-10 text-muted-foreground">
+                {{ spinner(size="md", class="mx-auto") }}
+                <p class="mt-4">Loading issue details...</p>
             </div>
-            <nav class="nav">
-                <a href="/dashboard">Dashboard</a>
-                <a href="/issues">Processed Issues</a>
-            </nav>
-        </div>
+        {% endcall %}
         
-        <div id="loading" class="card loading">Loading issue details...</div>
-        <div id="error" class="card error" style="display: none;"></div>
+        <!-- Error State -->
+        <div id="error" class="hidden relative w-full rounded-lg border border-destructive/50 text-destructive bg-destructive/10 p-4 mb-6"></div>
         
-        <div id="content" style="display: none;">
-            <div class="card">
-                <div class="card-header">
-                    <h2>Issue Information</h2>
-                    <div class="card-header-actions">
-                        <button class="btn btn-primary" onclick="reanalyze()">Reanalyze</button>
-                        <button class="btn btn-secondary" onclick="resend()">Resend</button>
-                        <button class="btn btn-success" onclick="reanalyzeAndResend()">Reanalyze & Resend</button>
+        <!-- Content -->
+        <div id="content" class="hidden space-y-6">
+            <!-- Issue Information Card -->
+            {% call card(title="Issue Information", class="mb-6") %}
+                <div class="flex justify-between items-center mb-6 pb-4 border-b">
+                    <h2 class="text-2xl font-semibold leading-none tracking-tight m-0"></h2>
+                    <div class="flex gap-2">
+                        {{ button("Reanalyze", variant="default", size="sm", onclick="reanalyze()") }}
+                        {{ button("Resend", variant="secondary", size="sm", onclick="resend()") }}
+                        {{ button("Reanalyze & Resend", variant="default", size="sm", onclick="reanalyzeAndResend()", class="bg-green-600 hover:bg-green-700") }}
                     </div>
                 </div>
-                <div id="actionStatus" style="display: none;"></div>
-                <a href="#" id="issueUrlLink" class="issue-url-link" target="_blank" style="display: none;"></a>
-                <div class="issue-info" id="issueInfo">
+                
+                <div id="actionStatus" class="hidden mb-4"></div>
+                
+                <a href="#" id="issueUrlLink" class="hidden text-sm text-primary hover:underline mb-4 inline-block" target="_blank"></a>
+                
+                <div class="space-y-3" id="issueInfo">
                 </div>
-            </div>
+            {% endcall %}
             
-            <div class="card">
-                <h2>Email Report Preview</h2>
-                <div class="email-preview" id="emailPreview">
+            <!-- Email Report Preview Card -->
+            {% call card(title="Email Report Preview", class="mb-6") %}
+                <div class="border rounded-lg p-5 bg-muted/30 max-h-[600px] overflow-y-auto" id="emailPreview">
                 </div>
-            </div>
+            {% endcall %}
         </div>
     </div>
+{% endcall %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    const issueId = {{ issue_id }};
     
-    <script>
-        const issueId = {{ issue_id }};
+    async function loadIssueDetails() {
+        const loading = document.getElementById('loading').parentElement;
+        const error = document.getElementById('error');
+        const content = document.getElementById('content');
         
-        async function loadIssueDetails() {
-            const loading = document.getElementById('loading');
-            const error = document.getElementById('error');
-            const content = document.getElementById('content');
+        try {
+            const response = await fetch(`/api/issues/${issueId}`);
+            const data = await response.json();
             
-            try {
-                const response = await fetch(`/api/issues/${issueId}`);
-                const data = await response.json();
-                
-                if (response.status !== 200) {
-                    throw new Error(data.error || 'Failed to load issue');
-                }
-                
-                loading.style.display = 'none';
-                error.style.display = 'none';
-                content.style.display = 'block';
-                
-                // Display error if present
-                if (data.error) {
-                    const errorDiv = document.getElementById('error');
-                    errorDiv.style.display = 'block';
-                    errorDiv.innerHTML = `
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <span style="font-size: 20px;">❌</span>
-                            <div>
-                                <strong>Analysis Error:</strong>
-                                <div style="margin-top: 8px; font-family: monospace; font-size: 12px; background: rgba(0,0,0,0.05); padding: 8px; border-radius: 4px;">
-                                    ${data.error}
-                                </div>
+            if (response.status !== 200) {
+                throw new Error(data.error || 'Failed to load issue');
+            }
+            
+            loading.classList.add('hidden');
+            error.classList.add('hidden');
+            content.classList.remove('hidden');
+            
+            // Display error if present
+            if (data.error) {
+                error.classList.remove('hidden');
+                error.innerHTML = `
+                    <div class="flex items-start gap-3">
+                        <span class="text-xl">❌</span>
+                        <div class="flex-1">
+                            <strong>Analysis Error:</strong>
+                            <div class="mt-2 font-mono text-xs bg-black/5 p-2 rounded whitespace-pre-wrap break-words">
+                                ${data.error}
                             </div>
                         </div>
-                    `;
-                }
-                
-                // Display issue information
-                const issueData = data.issue_data || {};
-                const issueInfo = document.getElementById('issueInfo');
-                
-                // Set URL link below title
-                const issueUrlLink = document.getElementById('issueUrlLink');
-                if (issueData.web_url) {
-                    issueUrlLink.href = issueData.web_url;
-                    issueUrlLink.textContent = issueData.web_url;
-                    issueUrlLink.style.display = 'inline-block';
-                } else {
-                    issueUrlLink.style.display = 'none';
-                }
-                
-                // Format state with badge styling for "opened"
-                const state = issueData.state || 'unknown';
-                const stateCapitalized = state.charAt(0).toUpperCase() + state.slice(1);
-                const stateValue = state === 'opened' 
-                    ? `<value class="badge enabled">${stateCapitalized}</value>`
-                    : `<value>${stateCapitalized}</value>`;
-                
-                issueInfo.innerHTML = `
-                    <div class="info-item">
-                        <label>Issue ID</label>
-                        <value><strong>#${data.issue_iid || issueId}</strong></value>
-                    </div>
-                    <div class="info-item">
-                        <label>Title</label>
-                        <value>${issueData.title || 'Untitled'}</value>
-                    </div>
-                    <div class="info-item">
-                        <label>State</label>
-                        ${stateValue}
-                    </div>
-                    <div class="info-item">
-                        <label>Project ID</label>
-                        <value><strong>${issueData.project_id || 'N/A'}</strong></value>
                     </div>
                 `;
-                
-                // Display email preview
-                const emailReport = data.email_report || {};
-                const emailPreview = document.getElementById('emailPreview');
-                if (data.error) {
-                    emailPreview.innerHTML = '<p style="color: #e74c3c; font-weight: 600;">⚠️ No email report available due to analysis error</p>';
-                } else if (emailReport.html) {
-                    emailPreview.innerHTML = emailReport.html;
-                } else if (emailReport.text) {
-                    emailPreview.innerHTML = `<pre style="white-space: pre-wrap; font-family: inherit;">${emailReport.text}</pre>`;
-                } else {
-                    emailPreview.innerHTML = '<p style="color: #999;">No email report available</p>';
-                }
-            } catch (err) {
-                loading.style.display = 'none';
-                error.style.display = 'block';
-                error.textContent = `Error loading issue: ${err.message}`;
-                content.style.display = 'none';
             }
-        }
-        
-        async function reanalyze() {
-            const statusDiv = document.getElementById('actionStatus');
-            statusDiv.innerHTML = '<div class="action-status info">Reanalyzing...</div>';
-            statusDiv.style.display = 'block';
             
-            try {
-                const response = await fetch(`/api/issues/${issueId}/reanalyze`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'}
-                });
-                const data = await response.json();
-                
-                if (data.success) {
-                    statusDiv.innerHTML = '<div class="action-status success">Reanalysis completed successfully!</div>';
-                    // Reload issue details after a short delay
-                    setTimeout(loadIssueDetails, 1000);
-                } else {
-                    statusDiv.innerHTML = `<div class="action-status error">Error: ${data.error || 'Reanalysis failed'}</div>`;
-                }
-            } catch (err) {
-                statusDiv.innerHTML = `<div class="action-status error">Error: ${err.message}</div>`;
-            }
-        }
-        
-        async function resend() {
-            const statusDiv = document.getElementById('actionStatus');
-            statusDiv.innerHTML = '<div class="action-status info">Resending email...</div>';
-            statusDiv.style.display = 'block';
+            // Display issue information
+            const issueData = data.issue_data || {};
+            const issueInfo = document.getElementById('issueInfo');
             
-            try {
-                const response = await fetch(`/api/issues/${issueId}/resend`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'}
-                });
-                const data = await response.json();
-                
-                if (data.success) {
-                    statusDiv.innerHTML = '<div class="action-status success">Email sent successfully!</div>';
-                } else {
-                    statusDiv.innerHTML = `<div class="action-status error">Error: ${data.error || 'Failed to send email'}</div>`;
-                }
-            } catch (err) {
-                statusDiv.innerHTML = `<div class="action-status error">Error: ${err.message}</div>`;
+            // Set URL link
+            const issueUrlLink = document.getElementById('issueUrlLink');
+            if (issueData.web_url) {
+                issueUrlLink.href = issueData.web_url;
+                issueUrlLink.textContent = issueData.web_url;
+                issueUrlLink.classList.remove('hidden');
+            } else {
+                issueUrlLink.classList.add('hidden');
             }
-        }
-        
-        async function reanalyzeAndResend() {
-            const statusDiv = document.getElementById('actionStatus');
-            statusDiv.innerHTML = '<div class="action-status info">Reanalyzing and sending email...</div>';
-            statusDiv.style.display = 'block';
             
-            try {
-                const response = await fetch(`/api/issues/${issueId}/reanalyze-and-resend`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'}
-                });
-                const data = await response.json();
-                
-                if (data.success) {
-                    statusDiv.innerHTML = '<div class="action-status success">Reanalysis completed and email sent successfully!</div>';
-                    // Reload issue details after a short delay
-                    setTimeout(loadIssueDetails, 1000);
-                } else {
-                    statusDiv.innerHTML = `<div class="action-status error">Error: ${data.error || 'Operation failed'}</div>`;
-                }
-            } catch (err) {
-                statusDiv.innerHTML = `<div class="action-status error">Error: ${err.message}</div>`;
+            // Format state with badge
+            const state = issueData.state || 'unknown';
+            const stateCapitalized = state.charAt(0).toUpperCase() + state.slice(1);
+            const stateBadgeClass = state === 'opened' 
+                ? 'inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold border-transparent bg-green-500 text-white'
+                : 'inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold border-transparent bg-gray-500 text-white';
+            const stateValue = `<span class="${stateBadgeClass}">${stateCapitalized}</span>`;
+            
+            issueInfo.innerHTML = `
+                <div class="flex items-start gap-3 py-2 border-b">
+                    <span class="text-sm font-semibold text-muted-foreground min-w-[120px]">Issue ID</span>
+                    <span class="text-sm font-semibold">#${data.issue_iid || issueId}</span>
+                </div>
+                <div class="flex items-start gap-3 py-2 border-b">
+                    <span class="text-sm font-semibold text-muted-foreground min-w-[120px]">Title</span>
+                    <span class="text-sm flex-1">${issueData.title || 'Untitled'}</span>
+                </div>
+                <div class="flex items-start gap-3 py-2 border-b">
+                    <span class="text-sm font-semibold text-muted-foreground min-w-[120px]">State</span>
+                    <span>${stateValue}</span>
+                </div>
+                <div class="flex items-start gap-3 py-2">
+                    <span class="text-sm font-semibold text-muted-foreground min-w-[120px]">Project ID</span>
+                    <span class="text-sm font-semibold">${issueData.project_id || 'N/A'}</span>
+                </div>
+            `;
+            
+            // Display email preview
+            const emailReport = data.email_report || {};
+            const emailPreview = document.getElementById('emailPreview');
+            if (data.error) {
+                emailPreview.innerHTML = '<p class="text-destructive font-semibold">⚠️ No email report available due to analysis error</p>';
+            } else if (emailReport.html) {
+                emailPreview.innerHTML = emailReport.html;
+            } else if (emailReport.text) {
+                emailPreview.innerHTML = `<pre class="whitespace-pre-wrap font-mono text-sm">${emailReport.text}</pre>`;
+            } else {
+                emailPreview.innerHTML = '<p class="text-muted-foreground">No email report available</p>';
             }
+        } catch (err) {
+            loading.classList.add('hidden');
+            error.classList.remove('hidden');
+            error.textContent = `Error loading issue: ${err.message}`;
+            content.classList.add('hidden');
         }
+    }
+    
+    async function reanalyze() {
+        const statusDiv = document.getElementById('actionStatus');
+        statusDiv.innerHTML = '<div class="relative w-full rounded-lg border border-blue-500/50 bg-blue-50 text-blue-900 p-4">Reanalyzing...</div>';
+        statusDiv.classList.remove('hidden');
         
-        // Load issue details on page load
-        loadIssueDetails();
-    </script>
-</body>
-</html>
-
+        try {
+            const response = await fetch(`/api/issues/${issueId}/reanalyze`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'}
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+                statusDiv.innerHTML = '<div class="relative w-full rounded-lg border border-green-500/50 bg-green-50 text-green-900 p-4">Reanalysis completed successfully!</div>';
+                setTimeout(loadIssueDetails, 1000);
+            } else {
+                statusDiv.innerHTML = `<div class="relative w-full rounded-lg border border-destructive/50 text-destructive bg-destructive/10 p-4">Error: ${data.error || 'Reanalysis failed'}</div>`;
+            }
+        } catch (err) {
+            statusDiv.innerHTML = `<div class="relative w-full rounded-lg border border-destructive/50 text-destructive bg-destructive/10 p-4">Error: ${err.message}</div>`;
+        }
+    }
+    
+    async function resend() {
+        const statusDiv = document.getElementById('actionStatus');
+        statusDiv.innerHTML = '<div class="relative w-full rounded-lg border border-blue-500/50 bg-blue-50 text-blue-900 p-4">Resending email...</div>';
+        statusDiv.classList.remove('hidden');
+        
+        try {
+            const response = await fetch(`/api/issues/${issueId}/resend`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'}
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+                statusDiv.innerHTML = '<div class="relative w-full rounded-lg border border-green-500/50 bg-green-50 text-green-900 p-4">Email sent successfully!</div>';
+            } else {
+                statusDiv.innerHTML = `<div class="relative w-full rounded-lg border border-destructive/50 text-destructive bg-destructive/10 p-4">Error: ${data.error || 'Failed to send email'}</div>`;
+            }
+        } catch (err) {
+            statusDiv.innerHTML = `<div class="relative w-full rounded-lg border border-destructive/50 text-destructive bg-destructive/10 p-4">Error: ${err.message}</div>`;
+        }
+    }
+    
+    async function reanalyzeAndResend() {
+        const statusDiv = document.getElementById('actionStatus');
+        statusDiv.innerHTML = '<div class="relative w-full rounded-lg border border-blue-500/50 bg-blue-50 text-blue-900 p-4">Reanalyzing and sending email...</div>';
+        statusDiv.classList.remove('hidden');
+        
+        try {
+            const response = await fetch(`/api/issues/${issueId}/reanalyze-and-resend`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'}
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+                statusDiv.innerHTML = '<div class="relative w-full rounded-lg border border-green-500/50 bg-green-50 text-green-900 p-4">Reanalysis completed and email sent successfully!</div>';
+                setTimeout(loadIssueDetails, 1000);
+            } else {
+                statusDiv.innerHTML = `<div class="relative w-full rounded-lg border border-destructive/50 text-destructive bg-destructive/10 p-4">Error: ${data.error || 'Operation failed'}</div>`;
+            }
+        } catch (err) {
+            statusDiv.innerHTML = `<div class="relative w-full rounded-lg border border-destructive/50 text-destructive bg-destructive/10 p-4">Error: ${err.message}</div>`;
+        }
+    }
+    
+    // Load issue details on page load
+    loadIssueDetails();
+</script>
+{% endblock %}

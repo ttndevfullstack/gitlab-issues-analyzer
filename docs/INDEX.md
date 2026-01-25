@@ -21,6 +21,7 @@ Complete documentation for GitLab Issues Analyzer.
 |----------|---------|----------|
 | [CODING_RULES.md](./CODING_RULES.md) | Coding standards and best practices | Developers |
 | [FAQ.md](./FAQ.md) | Frequently asked questions and troubleshooting | Everyone |
+| [UI_MIGRATION_PLAN.md](./UI_MIGRATION_PLAN.md) | UI migration plan to Shadcn UI design system | Developers |
 
 ## Quick Navigation
 
@@ -43,6 +44,9 @@ Complete documentation for GitLab Issues Analyzer.
 
 **Contribute code**
 → [CODING_RULES.md](./CODING_RULES.md)
+
+**Migrate UI**
+→ [UI_MIGRATION_PLAN.md](./UI_MIGRATION_PLAN.md)
 
 ## Document Overview
 
@@ -69,6 +73,9 @@ Coding standards, conventions, style guidelines (PEP 8), and best practices.
 
 ### [FAQ.md](./FAQ.md)
 Frequently asked questions, troubleshooting, and common issues.
+
+### [UI_MIGRATION_PLAN.md](./UI_MIGRATION_PLAN.md)
+Complete implementation plan for migrating the UI to Shadcn UI-inspired design system using Flask-compatible technologies (Tailwind CSS, Jinja2 macros). Includes detailed task breakdown, component specifications, testing plan, and timeline.
 
 ---
 
