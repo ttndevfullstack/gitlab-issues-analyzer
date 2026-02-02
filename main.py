@@ -525,20 +525,22 @@ def run_polling_mode(poll_interval: int) -> None:
                 labels=labels,
             )
 
-            # Filter by project IDs if configured (automation mode only)
+            gitlab_url = config.get("gitlab", {}).get("url", "")
             project_ids = config.get("app", {}).get("project_ids")
             if project_ids:
-                original_count = len(new_issues)
+                logger.info(
+                    f"✅ Fetched {len(new_issues)} issue(s) from {gitlab_url} by project IDs: {project_ids}"
+                )
+            else:
+                logger.info(f"✅ Fetched {len(new_issues)} issue(s) from {gitlab_url}")
+
+            # Filter by project IDs if configured (automation mode only)
+            if project_ids:
                 new_issues = [
                     issue
                     for issue in new_issues
                     if issue.get("project_id") in project_ids
                 ]
-                if len(new_issues) < original_count:
-                    filtered_count = original_count - len(new_issues)
-                    logger.info(
-                        f"📊 Filtered {filtered_count} issue(s) by project IDs: {project_ids}"
-                    )
 
             if new_issues:
                 # Filter out already cached issues to avoid reprocessing

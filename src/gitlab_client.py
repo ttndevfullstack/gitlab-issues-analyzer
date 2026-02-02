@@ -201,9 +201,6 @@ class GitLabClient:
             "GET", "/issues", params=params, use_project_endpoint=use_project_endpoint
         )
         issues = response.json()
-        
-        logger.info(f"✅ Fetched {len(issues)} issue(s) from {self.url}")
-        
         return issues
 
     def get_issue(
