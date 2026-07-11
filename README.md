@@ -44,17 +44,17 @@
 ## How it works
 
 ```
-╭─ GitLab Issues Analyzer · issue detected ─────────────────────────────╮
+╭─ GitLab Issues Analyzer · issue detected ──────────────────────────────╮
 │                                                                        │
-│   #    Stage        Component      Output                             │
-│  ────────────────────────────────────────────────────────────────     │
+│   #    Stage        Component      Output                              │
+│  ────────────────────────────────────────────────────────────────      │
 │   1    Detect       Monitor        New issue event (webhook/poll)      │
 │   2    Fetch        GitLab API     Issue + comments + related + files  │
 │   3    Analyze      AI Provider    WWWH-TR structured analysis         │
 │   4    Report       Reporter       Formatted email report              │
 │   5    Notify       SMTP           Email delivered to recipient        │
 │                                                                        │
-│   Poll every N seconds, or react instantly to webhook events.         │
+│   Poll every N seconds, or react instantly to webhook events.          │
 ╰────────────────────────────────────────────────────────────────────────╯
 ```
 
