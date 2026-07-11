@@ -1,19 +1,38 @@
-# GitLab Issues Analyzer
+<div align="center">
+  <h1>🔍 GitLab Issues Analyzer</h1>
+  <p>
+    <strong>An AI analyst for your GitLab issue tracker.</strong><br>
+    A new issue in — a structured WWWH-TR analysis, emailed out.
+  </p>
 
-An automated tool that analyzes GitLab issues using AI and sends structured email reports based on the WWWH-TR thinking framework.
+  [![version](https://img.shields.io/badge/version-1.0.0-blue)](./.env.example)
+  [![tests](https://img.shields.io/badge/tests-62%20passing-brightgreen)](#testing)
+  [![Python](https://img.shields.io/badge/Python-3.12-3776ab)](#)
+  [![Flask](https://img.shields.io/badge/Flask-webhook%2Fdashboard-000000)](#)
+  [![Docker](https://img.shields.io/badge/Docker-ready-2496ed)](#)
+  [![license](https://img.shields.io/badge/license-MIT-green)](#license)
 
-## Overview
+  <sub>A tool by <strong>ttndevfullstack</strong>.</sub>
+</div>
 
-When a new GitLab issue is created, the system automatically:
+---
 
-1. Fetches comprehensive issue data (comments, related issues, attachments)
-2. Analyzes the issue using AI via OpenRouter or OpenAI
-3. Structures the analysis using the WWWH-TR framework
-4. Sends an email notification with the analysis report
+## Why use it
+
+**⚡ Lightweight & fast**
+- No database, minimal dependencies — just fetch, analyze, send.
+- Docker Compose deploy with `production` / `development` / `testing` environment modes.
+
+**🤖 AI-powered analysis**
+- Fetches the full issue context: description, comments, related issues, attachments.
+- Analyzes with OpenRouter (DeepSeek) or OpenAI, reasoning mode supported.
+- Every report is structured through the **WWWH-TR** thinking framework, not free-form text.
+
+**✅ Flexible detection**
+- **Webhook mode** reacts instantly, **polling mode** checks on an interval — pick per environment.
+- Built-in **web dashboard** for manual triggers, stats, and browsing analyzed issues.
 
 ## WWWH-TR Framework
-
-The analysis follows a structured thinking framework:
 
 - **W1 — Why**: Root cause and ultimate goal
 - **W2 — What**: Problem identification and information gathering
@@ -22,14 +41,22 @@ The analysis follows a structured thinking framework:
 - **T — Test**: Quick experiments and measurement milestones
 - **R — Reflect**: Evaluation, conclusion, and next steps
 
-## Features
+## How it works
 
-- **Automated Detection**: Webhook or polling mode for real-time or periodic issue monitoring
-- **AI Analysis**: Supports OpenRouter (DeepSeek) and OpenAI with reasoning mode
-- **Structured Reports**: WWWH-TR framework analysis in email format
-- **Web Dashboard**: Manual triggers, statistics, and issue management
-- **Lightweight**: No database required, minimal dependencies
-- **Docker Ready**: Easy deployment with Docker Compose
+```
+╭─ GitLab Issues Analyzer · issue detected ─────────────────────────────╮
+│                                                                        │
+│   #    Stage        Component      Output                             │
+│  ────────────────────────────────────────────────────────────────     │
+│   1    Detect       Monitor        New issue event (webhook/poll)      │
+│   2    Fetch        GitLab API     Issue + comments + related + files  │
+│   3    Analyze      AI Provider    WWWH-TR structured analysis         │
+│   4    Report       Reporter       Formatted email report              │
+│   5    Notify       SMTP           Email delivered to recipient        │
+│                                                                        │
+│   Poll every N seconds, or react instantly to webhook events.         │
+╰────────────────────────────────────────────────────────────────────────╯
+```
 
 ## Quick Start
 
@@ -96,7 +123,7 @@ The analysis follows a structured thinking framework:
 
    Open `http://localhost:8000` in your browser.
 
-### Configuration Options
+## Configuration
 
 #### Environment Modes
 
@@ -116,19 +143,21 @@ Set `ISSUE_START_TIME` to process only issues created after a specific time:
 
 Set `MAX_ISSUES_PER_POLL=1` to process only one issue per polling cycle for testing.
 
+See the **[Configuration Guide](./docs/CONFIGURATION.md)** for the complete reference.
+
 ## Documentation
 
-- **[Configuration Guide](./docs/CONFIGURATION.md)** - Complete configuration reference
-- **[Deployment Guide](./docs/DEPLOYMENT.md)** - Platform-specific deployment instructions
-- **[API Integration](./docs/API_INTEGRATION.md)** - GitLab and AI API details
-- **[Architecture](./docs/ARCHITECTURE.md)** - System design and components
-- **[FAQ](./docs/FAQ.md)** - Troubleshooting and common questions
+| Doc | Covers |
+| --- | ------ |
+| **[Configuration Guide](./docs/CONFIGURATION.md)** | Complete configuration reference |
+| **[Deployment Guide](./docs/DEPLOYMENT.md)** | Platform-specific deployment instructions |
+| **[API Integration](./docs/API_INTEGRATION.md)** | GitLab and AI API details |
+| **[Architecture](./docs/ARCHITECTURE.md)** | System design and components |
+| **[FAQ](./docs/FAQ.md)** | Troubleshooting and common questions |
 
 ## Development
 
 ### Running Locally
-
-For development with live code reloading:
 
 ```bash
 docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
@@ -162,6 +191,15 @@ flake8 src/ main.py
 ```bash
 docker-compose up -d --build
 ```
+
+## Requirements
+
+| Dependency | Required | Notes |
+| ---------- | :------: | ----- |
+| Docker + Docker Compose | ✅ | Runtime and deployment |
+| GitLab Personal Access Token (`api` scope) | ✅ | GitLab issue access |
+| AI Provider API key (OpenRouter or OpenAI) | ✅ | Powers the analysis |
+| SMTP credentials | ✅ | Email report delivery |
 
 ## License
 
